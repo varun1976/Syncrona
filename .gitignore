@@ -1,0 +1,86 @@
+# Dependencies
+node_modules/
+jspm_packages/
+.pnp
+.pnp.js
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Build and Production
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.cache/
+*.tsbuildinfo
+vite.config.js.timestamp-*
+frontend/dist/
+backend/dist/
+
+# Debug and Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+logs/
+*.log.*
+
+# Environment and Secrets
+backend/.env
+frontend/.env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.env.*
+!.env.example
+
+# IDE and Editor files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.bak
+*.tmp
+*.temp
+
+# OS Specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Testing
+coverage/
+.nyc_output
+cypress/videos/
+cypress/screenshots/
+.eslintcache
+.stylelintcache
+
+# Project Specific
+uploads/
+temp/
+tmp/
+storage/
+public/hot/
+public/storage/

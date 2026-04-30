@@ -1,0 +1,13 @@
+export const THEMES = [
+  "light",
+  "dark",
+  "retro",
+  "cyberpunk",
+  "valentine",
+  "halloween",
+  "forest",
+  "dracula",
+  "night",
+  "coffee",
+  "nord",
+];
