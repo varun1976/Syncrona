@@ -30,22 +30,26 @@ app.use(express.json({ limit: '200kb' }));
 app.use(express.urlencoded({ extended: true, limit: '200kb' }));
 app.use(cookieParser());
 
-// Dynamic CORS configuration allowing Vercel frontend and local development
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173',
-  'http://localhost:3000',
-].filter(Boolean);
+// Dynamic CORS configuration allowing Vercel frontend (*.vercel.app) and local development
+const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.trim().replace(/\/$/, '') : '';
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // Server-to-server or postman requests
+  const cleanOrigin = origin.trim().replace(/\/$/, '');
+  if (clientUrl && cleanOrigin === clientUrl) return true;
+  if (cleanOrigin === 'http://localhost:5173' || cleanOrigin === 'http://localhost:3000') return true;
+  if (cleanOrigin.endsWith('.vercel.app')) return true; // Automatically allow all Vercel deployments
+  return false;
+};
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, curl, or server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         console.warn(`[CORS REJECTED] Origin: ${origin}`);
-        callback(new Error('CORS policy violation: Access from origin ' + origin + ' denied'));
+        callback(null, false);
       }
     },
     credentials: true,
