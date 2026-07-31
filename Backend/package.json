@@ -6,6 +6,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.6.1",
     "firebase-admin": "^14.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.0",
