@@ -2,7 +2,7 @@ import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
-import { firebaseAdmin } from "../lib/firebaseAdmin.js";
+import { OAuth2Client } from "google-auth-library";
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -123,15 +123,26 @@ export const googleAuth = async (req, res) => {
   const { idToken } = req.body;
   try {
     if (!idToken) {
-      return res.status(400).json({ message: "Firebase ID token is required" });
+      return res.status(400).json({ message: "Google ID token is required" });
     }
 
-    const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
-    const { uid: googleId, email, name: fullName, picture: profilePic } = decodedToken;
-
-    if (!email) {
-      return res.status(400).json({ message: "Invalid Firebase token payload: Email missing" });
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ message: "GOOGLE_CLIENT_ID is not configured on server" });
     }
+
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: clientId,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: "Invalid Google token payload" });
+    }
+
+    const { sub: googleId, email, name: fullName, picture: profilePic } = payload;
 
     let user = await User.findOne({ email });
 
@@ -170,6 +181,6 @@ export const googleAuth = async (req, res) => {
     });
   } catch (error) {
     console.log("Error in googleAuth controller:", error.message);
-    res.status(401).json({ message: "Firebase Google authentication failed: " + error.message });
+    res.status(401).json({ message: "Google authentication failed: " + error.message });
   }
 };
