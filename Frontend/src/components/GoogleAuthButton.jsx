@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { signInWithPopup } from "firebase/auth";
+import React, { useState, useEffect } from "react";
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { auth, googleProvider } from "../lib/firebase";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
@@ -11,9 +11,30 @@ const GoogleAuthButton = () => {
 
   const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
 
+  // Handle redirect result if signInWithRedirect was triggered due to popup blockage
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          setIsAuthenticating(true);
+          const idToken = await result.user.getIdToken();
+          await googleLogin(idToken);
+        }
+      })
+      .catch((err) => {
+        console.error("Error handling Google redirect result:", err);
+        if (err.code !== "auth/credential-already-in-use") {
+          toast.error("Google Sign-In failed via redirect.");
+        }
+      })
+      .finally(() => {
+        setIsAuthenticating(false);
+      });
+  }, [googleLogin]);
+
   const handleGoogleSignIn = async () => {
     if (!apiKey || apiKey.includes("your_firebase_api_key")) {
-      toast.error("Firebase is not configured. Please set VITE_FIREBASE_API_KEY in Frontend .env");
+      toast.error("Firebase is not configured. Please check environment variables.");
       return;
     }
 
@@ -28,6 +49,14 @@ const GoogleAuthButton = () => {
         error.code === "auth/cancelled-popup-request"
       ) {
         toast("Google Sign-In popup closed.", { icon: "ℹ️" });
+      } else if (error.code === "auth/popup-blocked") {
+        toast.loading("Popup blocked by browser. Redirecting to Google...");
+        try {
+          await signInWithRedirect(auth, googleProvider);
+        } catch (redirectErr) {
+          console.error("Redirect Sign-In error:", redirectErr);
+          toast.error("Popup was blocked by your browser. Please allow popups for this site.");
+        }
       } else {
         console.error("Firebase Google Sign-In error:", error);
         toast.error(error.message || "Failed to sign in with Google.");
