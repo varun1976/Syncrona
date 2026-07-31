@@ -1,0 +1,32 @@
+# QuickChat Project Requirements
+
+## System Prerequisites
+- Node.js v18.0.0 or higher
+- npm v9.0.0 or higher
+- MongoDB instance (Local or MongoDB Atlas)
+- Cloudinary Account (for image uploads)
+
+## Core Backend Dependencies (Node.js/Express)
+- express: Fast, unopinionated, minimalist web framework
+- mongoose: MongoDB object modeling tool
+- jsonwebtoken: JWT implementation for authentication
+- bcryptjs: Password hashing library
+- cookie-parser: Parse Cookie header and populate req.cookies
+- cors: Middleware to enable CORS
+- dotenv: Loads environment variables from .env file
+- socket.io: Real-time, bidirectional and event-based communication
+- cloudinary: Cloudinary Node.js SDK
+- nodemon: (Dev) Tool that restarts the node application when file changes are detected
+
+## Core Frontend Dependencies (React/Vite)
+- react: UI library
+- react-dom: Entry point to the DOM and server renderers for React
+- react-router-dom: Declarative routing for React
+- axios: Promise based HTTP client
+- lucide-react: Icon library
+- react-hot-toast: Smoking hot React notifications
+- socket.io-client: Client-side library for Socket.io
+- zustand: Small, fast and scalable bearbones state-management solution
+- tailwindcss: Utility-first CSS framework
+- daisyui: Tailwind CSS components
+- vite: (Dev) Next generation frontend tooling

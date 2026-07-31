@@ -2,6 +2,7 @@ import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
+import { firebaseAdmin } from "../lib/firebaseAdmin.js";
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -116,4 +117,59 @@ export const checkAuth = (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+export const googleAuth = async (req, res) => {
+  const { idToken } = req.body;
+  try {
+    if (!idToken) {
+      return res.status(400).json({ message: "Firebase ID token is required" });
+    }
+
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+    const { uid: googleId, email, name: fullName, picture: profilePic } = decodedToken;
+
+    if (!email) {
+      return res.status(400).json({ message: "Invalid Firebase token payload: Email missing" });
+    }
+
+    let user = await User.findOne({ email });
+
+    if (user) {
+      let isUpdated = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        isUpdated = true;
+      }
+      if (!user.profilePic && profilePic) {
+        user.profilePic = profilePic;
+        isUpdated = true;
+      }
+      if (isUpdated) {
+        await user.save();
+      }
+    } else {
+      user = new User({
+        fullName: fullName || email.split("@")[0],
+        email,
+        profilePic: profilePic || "",
+        googleId,
+        authProvider: "google",
+      });
+      await user.save();
+    }
+
+    generateToken(user._id, res);
+
+    res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      profilePic: user.profilePic,
+    });
+  } catch (error) {
+    console.log("Error in googleAuth controller:", error.message);
+    res.status(401).json({ message: "Firebase Google authentication failed: " + error.message });
+  }
+};
+
 

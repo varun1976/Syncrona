@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.11.0",
+    "firebase": "^12.17.0",
     "lucide-react": "^0.536.0",
     "quickchat": "file:..",
     "react": "^19.1.0",

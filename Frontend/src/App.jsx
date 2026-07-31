@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Navigate, Route, Routes, useActionData } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import SignUpPage from './pages/SignUpPage';
@@ -8,12 +8,12 @@ import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import { useAuthStore } from './store/useAuthStore';
 import { useThemeStore } from './store/useThemeStore';
-import { Loader, User } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
 
-  const { authUser, checkAuth, isCheckingAuth,onlineUsers } = useAuthStore();
+  const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
   const {theme}=useThemeStore();
   useEffect(() => {
     checkAuth();

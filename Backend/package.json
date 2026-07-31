@@ -6,6 +6,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "firebase-admin": "^14.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.0",
     "quickchat": "file:..",
@@ -19,7 +20,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "seed": "node seed.js"
   },
   "keywords": [],
   "author": "",

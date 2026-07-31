@@ -1,0 +1,63 @@
+[
+  {
+    "collection": "users",
+    "data": [
+      {
+        "_id": "663a1234b123456789012001",
+        "fullName": "Varun Kumar",
+        "email": "varun@quickchat.dev",
+        "password": "$2a$10$7Z8H9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1F2G3",
+        "profilePic": "https://res.cloudinary.com/djb8vxra3/image/upload/v1620000000/sample_user1.png",
+        "createdAt": "2026-05-07T10:00:00.000Z",
+        "updatedAt": "2026-05-07T10:00:00.000Z"
+      },
+      {
+        "_id": "663a1234b123456789012002",
+        "fullName": "Sarah Miller",
+        "email": "sarah@quickchat.dev",
+        "password": "$2a$10$7Z8H9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1F2G3",
+        "profilePic": "https://res.cloudinary.com/djb8vxra3/image/upload/v1620000000/sample_user2.png",
+        "createdAt": "2026-05-07T10:00:00.000Z",
+        "updatedAt": "2026-05-07T10:00:00.000Z"
+      },
+      {
+        "_id": "663a1234b123456789012003",
+        "fullName": "James Wilson",
+        "email": "james@quickchat.dev",
+        "password": "$2a$10$7Z8H9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1F2G3",
+        "profilePic": "",
+        "createdAt": "2026-05-07T10:00:00.000Z",
+        "updatedAt": "2026-05-07T10:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "collection": "messages",
+    "data": [
+      {
+        "_id": "663a2234b123456789012101",
+        "senderId": "663a1234b123456789012001",
+        "receiverId": "663a1234b123456789012002",
+        "text": "Hey Sarah! How's the project going?",
+        "createdAt": "2026-05-07T10:05:00.000Z",
+        "updatedAt": "2026-05-07T10:05:00.000Z"
+      },
+      {
+        "_id": "663a2234b123456789012102",
+        "senderId": "663a1234b123456789012002",
+        "receiverId": "663a1234b123456789012001",
+        "text": "Hi Varun! It's going great. Just finished the login flow.",
+        "createdAt": "2026-05-07T10:06:00.000Z",
+        "updatedAt": "2026-05-07T10:06:00.000Z"
+      },
+      {
+        "_id": "663a2234b123456789012103",
+        "senderId": "663a1234b123456789012001",
+        "receiverId": "663a1234b123456789012003",
+        "text": "Hey James, did you check the new API endpoints?",
+        "createdAt": "2026-05-07T10:10:00.000Z",
+        "updatedAt": "2026-05-07T10:10:00.000Z"
+      }
+    ]
+  }
+]

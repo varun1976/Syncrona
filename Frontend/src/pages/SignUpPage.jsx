@@ -3,9 +3,10 @@ import { useAuthStore } from "../store/useAuthStore";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// import AuthImagePattern from "../components/AuthImagePattern";
 import toast from "react-hot-toast";
 import AuthImagePattern from "../components/AuthImagePattern";
+import GoogleAuthButton from "../components/GoogleAuthButton";
+
 
 const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -132,6 +133,10 @@ const SignUpPage = () => {
               )}
             </button>
           </form>
+
+          <div className="divider text-xs text-base-content/40 uppercase">Or</div>
+
+          <GoogleAuthButton />
 
           <div className="text-center">
             <p className="text-base-content/60">
