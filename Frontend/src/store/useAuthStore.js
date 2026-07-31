@@ -18,15 +18,17 @@ export const useAuthStore = create((set, get) => ({
             set({ authUser: res.data });
             get().connectSocket();
         } catch (error) {
-            console.log("Error in checkAuth:", error);
             if (error.response?.status === 401) {
                 localStorage.removeItem("token");
+            } else {
+                console.log("Error in checkAuth:", error);
             }
             set({ authUser: null });
         } finally {
             set({ isCheckingAuth: false });
         }
     },
+
     signup: async (data) => {
         set({ isSigningUp: true });
         try {
