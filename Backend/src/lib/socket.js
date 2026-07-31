@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import http from 'http';
 import express from 'express';
+import { applySocketRateLimiting } from '../middleware/socketRateLimiter.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -18,7 +19,8 @@ export function getReceiverSocketId(userId) {
 const userSocketMap = {};
 
 io.on('connection', (socket) => {
-    // console.log("new user Connected :", socket.id);
+    // Apply rate limiting middleware to prevent socket event flooding
+    applySocketRateLimiting(socket);
 
     const userId = socket.handshake.query.userId;
     if (userId) {
@@ -27,10 +29,9 @@ io.on('connection', (socket) => {
 
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
     socket.on('disconnect', () => {
-        console.log('A user Dissconnected :', socket.id);
         delete userSocketMap[userId];
         io.emit("getOnlineUsers", Object.keys(userSocketMap));
     });
 });
 
-export { io, app, server };
+export { io, app, server };

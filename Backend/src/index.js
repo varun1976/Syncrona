@@ -7,8 +7,13 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import {app,server} from './lib/socket.js';
 import path from 'path';
+import { globalLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
+
+// Enable trust proxy for correct IP identification behind reverse proxies
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '200kb' }));
 app.use(cookieParser());
 app.use(cors({
@@ -18,8 +23,12 @@ app.use(cors({
 const PORT=process.env.PORT;
 const __dirname = path.resolve();
 
+// Apply global rate limiter to all API endpoints
+app.use("/api", globalLimiter);
+
 app.use("/api/auth",authRoutes);
 app.use("/api/messages",messageRoutes);
+
 app.use((err, req, res, next) => {
   if (err.type === 'entity.too.large') {
     console.log("file too large");
