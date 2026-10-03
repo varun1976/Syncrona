@@ -32,33 +32,29 @@ export const getMessages = async (req, res) => {
       });
     }
 
-    // Handle background synchronization (fetching messages newer than `since`)
+    const conversationFilter = {
+      $or: [
+        { senderId: myId, receiverId: userToChatId },
+        { senderId: userToChatId, receiverId: myId },
+      ],
+    };
+
+    // 1. Handle background synchronization (fetching messages newer than `since`)
     if (since) {
-      let sinceFilter = {};
-      if (mongoose.Types.ObjectId.isValid(since)) {
-        const sinceMsg = await Message.findById(since).select("createdAt _id").lean();
-        if (sinceMsg) {
-          sinceFilter = {
-            $or: [
-              { createdAt: { $gt: sinceMsg.createdAt } },
-              {
-                createdAt: sinceMsg.createdAt,
-                _id: { $gt: sinceMsg._id },
-              },
-            ],
-          };
-        } else {
-          sinceFilter = { _id: { $gt: since } };
-        }
+      if (!mongoose.Types.ObjectId.isValid(since)) {
+        return res.status(400).json({
+          success: false,
+          code: "INVALID_SINCE_CURSOR",
+          message: "Invalid sync cursor provided.",
+        });
       }
 
-      const syncMessages = await Message.find({
-        $or: [
-          { senderId: myId, receiverId: userToChatId },
-          { senderId: userToChatId, receiverId: myId },
-        ],
-        ...sinceFilter,
-      })
+      const syncQuery = {
+        ...conversationFilter,
+        _id: { $gt: since },
+      };
+
+      const syncMessages = await Message.find(syncQuery)
         .sort({ createdAt: 1, _id: 1 })
         .limit(limit)
         .lean();
@@ -70,7 +66,9 @@ export const getMessages = async (req, res) => {
       });
     }
 
-    let cursorFilter = {};
+    // 2. Handle paginated history query (fetching messages older than `cursor`)
+    const historyQuery = { ...conversationFilter };
+
     if (cursor) {
       if (!mongoose.Types.ObjectId.isValid(cursor)) {
         return res.status(400).json({
@@ -80,29 +78,10 @@ export const getMessages = async (req, res) => {
         });
       }
 
-      const cursorMsg = await Message.findById(cursor).select("createdAt _id").lean();
-      if (cursorMsg) {
-        cursorFilter = {
-          $or: [
-            { createdAt: { $lt: cursorMsg.createdAt } },
-            {
-              createdAt: cursorMsg.createdAt,
-              _id: { $lt: cursorMsg._id },
-            },
-          ],
-        };
-      } else {
-        cursorFilter = { _id: { $lt: cursor } };
-      }
+      historyQuery._id = { $lt: cursor };
     }
 
-    const rawMessages = await Message.find({
-      $or: [
-        { senderId: myId, receiverId: userToChatId },
-        { senderId: userToChatId, receiverId: myId },
-      ],
-      ...cursorFilter,
-    })
+    const rawMessages = await Message.find(historyQuery)
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .lean();
