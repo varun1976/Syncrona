@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../store/useNotificationStore";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
@@ -23,7 +23,7 @@ const MessageInput = () => {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+      notify.error("This file type is not supported. Please select an image file.", "Unsupported File");
       return;
     }
 

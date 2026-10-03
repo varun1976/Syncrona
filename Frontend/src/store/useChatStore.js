@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import toast from "react-hot-toast";
+import { notify } from "../store/useNotificationStore";
+import { parseApiError } from "../lib/errorHandler";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 
@@ -16,7 +17,8 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/users");
       set({ users: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMsg = parseApiError(error, "Failed to load chat contacts.");
+      notify.error(errorMsg, "Contacts Error");
     } finally {
       set({ isUsersLoading: false });
     }
@@ -28,7 +30,8 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMsg = parseApiError(error, "Failed to load conversation history.");
+      notify.error(errorMsg, "Messages Error");
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -41,8 +44,8 @@ export const useChatStore = create((set, get) => ({
       set({ messages: [...messages, res.data] });
     } catch (error) {
       console.log(error.response);
-      const msg = error?.response?.data?.message || "Something went wrong";
-      toast.error(msg);
+      const errorMsg = parseApiError(error, "Unable to send message. Please check your connection.");
+      notify.error(errorMsg, "Message Delivery Failed");
     }
   },
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "../store/useAuthStore";
-import toast from "react-hot-toast";
+import { notify } from "../store/useNotificationStore";
 import { Loader2 } from "lucide-react";
 
 const GoogleAuthButton = () => {
@@ -12,19 +12,19 @@ const GoogleAuthButton = () => {
     if (credentialResponse?.credential) {
       googleLogin(credentialResponse.credential);
     } else {
-      toast.error("Google Sign-In failed: No credential received.");
+      notify.error("Google Sign-In failed: No credential received.", "Authentication Error");
     }
   };
 
   const handleError = () => {
-    toast.error("Google Sign-In was cancelled or failed.");
+    notify.error("Google Sign-In was cancelled or failed.", "Google Sign-In Failed");
   };
 
   if (!clientId || clientId.includes("your_google_client_id")) {
     return (
       <button
         type="button"
-        onClick={() => toast.error("Google Client ID is not configured in VITE_GOOGLE_CLIENT_ID")}
+        onClick={() => notify.error("Google Client ID is not configured in VITE_GOOGLE_CLIENT_ID", "Configuration Error")}
         className="neu-btn w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-wider text-slate-700"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24">

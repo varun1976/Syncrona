@@ -9,7 +9,7 @@ import ProfilePage from './pages/ProfilePage';
 import { useAuthStore } from './store/useAuthStore';
 import { useThemeStore } from './store/useThemeStore';
 import { Loader } from 'lucide-react';
-import { Toaster } from 'react-hot-toast';
+import { NotificationProvider } from './context/NotificationContext';
 
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -30,18 +30,19 @@ function App() {
     );
 
   return (
-    <div data-theme={theme} className="neu-bg min-h-screen text-slate-800">
-      <Navbar />
-      <Routes>
-        <Route path="/" element={authUser ? <HomePage /> : <Navigate to="/login" />} />
-        <Route path="/signup" element={!authUser ? <SignUpPage /> : <Navigate to="/" />} />
-        <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
-      </Routes>
-      <Toaster position="top-center" />
-    </div>
+    <NotificationProvider>
+      <div data-theme={theme} className="neu-bg min-h-screen text-slate-800">
+        <Navbar />
+        <Routes>
+          <Route path="/" element={authUser ? <HomePage /> : <Navigate to="/login" />} />
+          <Route path="/signup" element={!authUser ? <SignUpPage /> : <Navigate to="/" />} />
+          <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
+        </Routes>
+      </div>
+    </NotificationProvider>
   );
 }
 
-export default App;
+export default App;

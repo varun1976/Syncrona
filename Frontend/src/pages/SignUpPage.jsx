@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User } from "lucide-react";
 import { Link } from "react-router-dom";
-import toast from "react-hot-toast";
+import { notify } from "../store/useNotificationStore";
 import AuthImagePattern from "../components/AuthImagePattern";
 import GoogleAuthButton from "../components/GoogleAuthButton";
 
@@ -17,11 +17,26 @@ const SignUpPage = () => {
   const { signup, isSigningUp } = useAuthStore();
 
   const validateForm = () => {
-    if (!formData.fullName.trim()) return toast.error("Full name is required");
-    if (!formData.email.trim()) return toast.error("Email is required");
-    if (!/\S+@\S+\.\S+/.test(formData.email)) return toast.error("Invalid email format");
-    if (!formData.password) return toast.error("Password is required");
-    if (formData.password.length < 6) return toast.error("Password must be at least 6 characters");
+    if (!formData.fullName.trim()) {
+      notify.error("Please enter your full name.", "Validation Error");
+      return false;
+    }
+    if (!formData.email.trim()) {
+      notify.error("Please enter a valid email address.", "Validation Error");
+      return false;
+    }
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      notify.error("Please enter a valid email format.", "Validation Error");
+      return false;
+    }
+    if (!formData.password) {
+      notify.error("Please enter a password.", "Validation Error");
+      return false;
+    }
+    if (formData.password.length < 6) {
+      notify.error("Password must be at least 6 characters long.", "Validation Error");
+      return false;
+    }
 
     return true;
   };

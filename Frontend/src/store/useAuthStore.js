@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
-import toast from "react-hot-toast";
+import { notify } from "../store/useNotificationStore.js";
+import { parseApiError } from "../lib/errorHandler.js";
 import { io } from 'socket.io-client';
 
 const BASE_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.MODE === "development" ? "http://localhost:5001" : "/");
@@ -37,10 +38,11 @@ export const useAuthStore = create((set, get) => ({
                 localStorage.setItem("token", res.data.token);
             }
             set({ authUser: res.data });
-            toast.success("Account created successfully");
+            notify.success("Account created successfully. Welcome to Syncrona!", "Registration Complete");
             get().connectSocket();
         } catch (error) {
-            toast.error(error.response?.data?.message || "Signup failed");
+            const errorMsg = parseApiError(error, "Signup failed. Please try again.");
+            notify.error(errorMsg, "Registration Failed");
         } finally {
             set({ isSigningUp: false });
         }
@@ -50,12 +52,13 @@ export const useAuthStore = create((set, get) => ({
             await axiosInstance.post("/auth/logout");
             localStorage.removeItem("token");
             set({ authUser: null });
-            toast.success("Logged out successfully");
+            notify.success("Logged out successfully.", "Signed Out");
             get().disconnectSocket();
         } catch (error) {
             localStorage.removeItem("token");
             set({ authUser: null });
-            toast.error(error.response?.data?.message || "Logged out");
+            const errorMsg = parseApiError(error, "Logged out");
+            notify.info(errorMsg, "Session Ended");
         }
     },
     login: async (data) => {
@@ -66,10 +69,11 @@ export const useAuthStore = create((set, get) => ({
                 localStorage.setItem("token", res.data.token);
             }
             set({ authUser: res.data });
-            toast.success("Logged in successfully");
+            notify.success("Signed in successfully. Welcome back!", "Login Success");
             get().connectSocket();
         } catch (error) {
-            toast.error(error.response?.data?.message || "Login failed");
+            const errorMsg = parseApiError(error, "The email or password is incorrect.");
+            notify.error(errorMsg, "Login Failed");
         } finally {
             set({ isLoggingIn: false });
         }
@@ -82,11 +86,11 @@ export const useAuthStore = create((set, get) => ({
                 localStorage.setItem("token", res.data.token);
             }
             set({ authUser: res.data });
-            toast.success("Authenticated with Google successfully");
+            notify.success("Authenticated with Google successfully.", "Google Sign-In");
             get().connectSocket();
         } catch (error) {
-            const msg = error.response?.data?.message || "Google authentication failed";
-            toast.error(msg);
+            const errorMsg = parseApiError(error, "Google authentication failed.");
+            notify.error(errorMsg, "Google Authentication Error");
         } finally {
             set({ isLoggingIn: false });
         }
@@ -96,10 +100,18 @@ export const useAuthStore = create((set, get) => ({
         try {
             const res = await axiosInstance.put("/auth/update-profile", data);
             set({ authUser: res.data });
-            toast.success("Profile updated successfully");
+            if (data.fullName && !data.profilePic) {
+                notify.success("Your profile name has been updated successfully.", "Profile Updated");
+            } else if (data.profilePic && !data.fullName) {
+                notify.success("Your profile picture has been updated.", "Avatar Updated");
+            } else {
+                notify.success("Profile updated successfully.", "Profile Updated");
+            }
         } catch (error) {
             console.log("error in update profile:", error);
-            toast.error(error.response?.data?.message || "Update profile failed");
+            const errorMsg = parseApiError(error, "Unable to update profile. Please try again.");
+            notify.error(errorMsg, "Update Failed");
+            throw error;
         } finally {
             set({ isUpdatingProfile: false });
         }
@@ -108,11 +120,11 @@ export const useAuthStore = create((set, get) => ({
         set({ isChangingPassword: true });
         try {
             const res = await axiosInstance.put("/auth/change-password", data);
-            toast.success(res.data.message || "Password changed successfully");
+            notify.success("Your password has been changed successfully.", "Password Updated");
             return true;
         } catch (error) {
-            const msg = error.response?.data?.message || "Failed to change password";
-            toast.error(msg);
+            const errorMsg = parseApiError(error, "Unable to change your password. Please check your connection.");
+            notify.error(errorMsg, "Password Change Failed");
             throw error;
         } finally {
             set({ isChangingPassword: false });
@@ -125,11 +137,11 @@ export const useAuthStore = create((set, get) => ({
             localStorage.removeItem("token");
             get().disconnectSocket();
             set({ authUser: null });
-            toast.success("Account deleted permanently");
+            notify.success("Your account has been deleted successfully.", "Account Deleted");
             return true;
         } catch (error) {
-            const msg = error.response?.data?.message || "Failed to delete account";
-            toast.error(msg);
+            const errorMsg = parseApiError(error, "Account deletion failed. Please try again or contact support.");
+            notify.error(errorMsg, "Deletion Failed");
             throw error;
         } finally {
             set({ isDeletingAccount: false });
