@@ -10,7 +10,7 @@ import { useAuthStore } from "./useAuthStore";
  */
 class ConversationCache {
   constructor(maxConversations = 10, maxMsgsPerConv = 200) {
-    this.cache = new Map(); // key: userId -> { messages, hasMore, nextCursor, lastAccessed }
+    this.cache = new Map(); // key: userId -> { messages, hasMore, nextCursor, lastAccessed, lastSyncTime }
     this.maxConversations = maxConversations;
     this.maxMsgsPerConv = maxMsgsPerConv;
   }
@@ -47,9 +47,15 @@ class ConversationCache {
       hasMore: data.hasMore !== undefined ? data.hasMore : existing.hasMore,
       nextCursor: data.nextCursor !== undefined ? data.nextCursor : existing.nextCursor,
       lastAccessed: Date.now(),
+      lastSyncTime: Date.now(),
     });
 
     this.enforceLRU(userId);
+  }
+
+  touchSyncTime(userId) {
+    const entry = this.cache.get(userId);
+    if (entry) entry.lastSyncTime = Date.now();
   }
 
   appendSyncMessages(userId, newMessages) {
@@ -69,6 +75,7 @@ class ConversationCache {
       }
       entry.lastAccessed = Date.now();
     }
+    entry.lastSyncTime = Date.now();
   }
 
   prependOlderMessages(userId, olderMessages, newHasMore, newNextCursor) {
@@ -92,7 +99,7 @@ class ConversationCache {
   updateMessage(userId, updatedMsg) {
     let entry = this.cache.get(userId);
     if (!entry) {
-      entry = { messages: [], hasMore: false, nextCursor: null, lastAccessed: Date.now() };
+      entry = { messages: [], hasMore: false, nextCursor: null, lastAccessed: Date.now(), lastSyncTime: Date.now() };
       this.cache.set(userId, entry);
     }
 
@@ -139,6 +146,7 @@ class ConversationCache {
 }
 
 const messageCache = new ConversationCache(10, 200);
+const activeSyncs = new Set();
 
 export const useChatStore = create((set, get) => ({
   messages: [],
@@ -232,14 +240,30 @@ export const useChatStore = create((set, get) => ({
     const cached = messageCache.get(userId);
     if (!cached || cached.messages.length === 0) return;
 
+    // Cooldown check: if synced within the last 30 seconds, skip HTTP sync
+    const COOLDOWN_MS = 30000;
+    if (cached.lastSyncTime && Date.now() - cached.lastSyncTime < COOLDOWN_MS) {
+      return;
+    }
+
+    // In-flight lock: prevent duplicate concurrent HTTP sync requests
+    if (activeSyncs.has(userId)) return;
+    activeSyncs.add(userId);
+
     // Get latest server-persisted message ID
     const validServerMsgs = cached.messages.filter((m) => m._id && !m._id.startsWith("temp_"));
     const latestMsg = validServerMsgs[validServerMsgs.length - 1];
-    if (!latestMsg?._id) return;
+
+    if (!latestMsg?._id) {
+      activeSyncs.delete(userId);
+      return;
+    }
 
     try {
       const res = await axiosInstance.get(`/messages/${userId}?since=${latestMsg._id}`);
       const newMsgs = res.data.messages || [];
+
+      messageCache.touchSyncTime(userId);
 
       if (newMsgs.length > 0) {
         messageCache.appendSyncMessages(userId, newMsgs);
@@ -255,7 +279,8 @@ export const useChatStore = create((set, get) => ({
       }
     } catch (error) {
       console.error("Background sync error:", error);
-      // Keep cached messages intact on background sync error
+    } finally {
+      activeSyncs.delete(userId);
     }
   },
 
