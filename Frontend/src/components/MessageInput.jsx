@@ -1,13 +1,18 @@
 import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../store/useNotificationStore";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
+  const [base64Image, setBase64Image] = useState(null);
+  
+  const previewUrlRef = useRef(null);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
+  const isSendingRef = useRef(false);
+
   const { sendMessage } = useChatStore();
 
   // Auto-expand textarea height based on content
@@ -18,44 +23,96 @@ const MessageInput = () => {
     }
   }, [text]);
 
+  // Cleanup object URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
+  }, []);
+
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    // 1. File size validation (Max 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      notify.error("This image is too large. Please choose an image smaller than 5MB.", "File Too Large");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
+    // 2. MIME type validation
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type.toLowerCase()) && !file.type.startsWith("image/")) {
+      notify.error("This image format is not supported. Please choose a JPEG, PNG, GIF, or WebP file.", "Unsupported Format");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    // Clean up previous object URL if any
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+
+    // Instant local preview via URL.createObjectURL
+    const objectUrl = URL.createObjectURL(file);
+    previewUrlRef.current = objectUrl;
+    setImagePreview(objectUrl);
+
+    // Read Base64 asynchronously for backend transmission
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImagePreview(reader.result);
+      setBase64Image(reader.result);
+    };
+    reader.onerror = () => {
+      notify.error("This image could not be processed. Please try another image.", "Invalid File");
+      removeImage();
     };
     reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
     setImagePreview(null);
+    setBase64Image(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = (e) => {
     if (e) e.preventDefault();
     if (!text.trim() && !imagePreview) return;
+    if (isSendingRef.current) return;
 
-    try {
-      await sendMessage({
-        text: text.trim(),
-        image: imagePreview,
-      });
+    isSendingRef.current = true;
 
-      setText("");
-      setImagePreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      if (textareaRef.current) textareaRef.current.style.height = "auto";
-    } catch (error) {
-      console.error("Failed to send message:", error);
-    }
+    const currentText = text.trim();
+    const currentBase64 = base64Image;
+    const currentPreviewUrl = previewUrlRef.current;
+
+    // Reset composer state immediately to keep UI interactive
+    setText("");
+    setImagePreview(null);
+    setBase64Image(null);
+    previewUrlRef.current = null;
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+
+    // Trigger optimistic send asynchronously
+    sendMessage({
+      text: currentText,
+      image: currentBase64,
+      previewUrl: currentPreviewUrl,
+    }).finally(() => {
+      isSendingRef.current = false;
+    });
   };
 
   const handleKeyDown = (e) => {
@@ -67,7 +124,7 @@ const MessageInput = () => {
 
   return (
     <div className="p-3 sm:p-4 w-full border-t border-[var(--border-color)] neu-bg z-10 flex-shrink-0">
-      {/* Image Preview Box */}
+      {/* Instant Image Preview Box */}
       {imagePreview && (
         <div className="mb-3 flex items-center gap-2">
           <div className="relative neu-raised-sm p-1 rounded-2xl">
@@ -81,6 +138,7 @@ const MessageInput = () => {
               className="absolute -top-2 -right-2 size-5 rounded-full bg-[var(--error-color)] text-white
               flex items-center justify-center shadow hover:opacity-90 transition-opacity"
               type="button"
+              title="Remove image"
             >
               <X className="size-3" />
             </button>
@@ -88,7 +146,7 @@ const MessageInput = () => {
         </div>
       )}
 
-      {/* Input Form with Multiline Textarea */}
+      {/* Input Form */}
       <form onSubmit={handleSendMessage} className="flex items-end gap-2.5">
         <div className="flex-1 flex items-end gap-2 neu-inset rounded-2xl px-3 py-1.5 min-w-0">
           <textarea
