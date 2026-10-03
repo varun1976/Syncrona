@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User, UserRound } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User } from "lucide-react";
 import { Link } from "react-router-dom";
-
 import toast from "react-hot-toast";
 import AuthImagePattern from "../components/AuthImagePattern";
 import GoogleAuthButton from "../components/GoogleAuthButton";
-
 
 const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -30,44 +28,47 @@ const SignUpPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     const success = validateForm();
-
     if (success === true) signup(formData);
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <AuthImagePattern/>
-      {/* Right side */}
-      <div className="flex flex-col justify-center items-center p-6 sm:p-12">
-        <div className="w-full max-w-md space-y-8">
-          {/* LOGO */}
-          <div className="text-center mb-8">
+    <div className="min-h-screen grid lg:grid-cols-2 items-center pt-16 p-4 sm:p-8 neu-bg overflow-y-auto">
+      {/* Left Side Visual */}
+      <AuthImagePattern />
+
+      {/* Right Side Form */}
+      <div className="flex flex-col justify-center items-center p-4 sm:p-6">
+        <div className="w-full max-w-md neu-raised-lg rounded-3xl p-6 sm:p-8 space-y-5">
+          {/* Logo & Header */}
+          <div className="text-center">
             <div className="flex flex-col items-center gap-2 group">
-              <div
-                className="size-12 rounded-xl bg-primary/10 flex items-center justify-center 
-                group-hover:bg-primary/20 transition-colors"
-                >
-                <MessageSquare className="size-6 text-primary" />
+              <div className="size-12 rounded-2xl neu-inset flex items-center justify-center text-[var(--accent-color)]">
+                <MessageSquare className="size-6 text-[var(--accent-color)]" />
               </div>
-              <h1 className="text-2xl font-bold mt-2">Create Account</h1>
-              <p className="text-base-content/60">Get started with your free account</p>
+              <h1 className="text-2xl font-bold tracking-tight mt-2 text-[var(--text-primary)]">
+                Create Account
+              </h1>
+              <p className="text-xs font-semibold text-[var(--text-secondary)]">
+                Get started with your free Syncrona account
+              </p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Full Name</span>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-3.5">
+            {/* Full Name */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] pl-1">
+                Full Name
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="size-5 text-base-content/40 z-10" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--text-muted)]">
+                  <User className="size-4" />
                 </div>
                 <input
                   type="text"
-                  className={`input input-bordered w-full pl-10 focus:outline-none`}
+                  className="w-full neu-input rounded-2xl pl-10 pr-4 py-2.5 text-sm placeholder:text-[var(--placeholder-color)]"
                   placeholder="John Paul"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
@@ -75,17 +76,18 @@ const SignUpPage = () => {
               </div>
             </div>
 
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Email</span>
+            {/* Email */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] pl-1">
+                Email Address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ">
-                  <Mail className="size-5 text-base-content/40 z-10 " />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--text-muted)]">
+                  <Mail className="size-4" />
                 </div>
                 <input
                   type="email"
-                  className={`input input-bordered w-full pl-10 focus:outline-none`}
+                  className="w-full neu-input rounded-2xl pl-10 pr-4 py-2.5 text-sm placeholder:text-[var(--placeholder-color)]"
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -93,40 +95,42 @@ const SignUpPage = () => {
               </div>
             </div>
 
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Password</span>
+            {/* Password */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] pl-1">
+                Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="size-5 text-base-content/40 z-10"/>
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--text-muted)]">
+                  <Lock className="size-4" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  className={`input input-bordered w-full pl-10 focus:outline-none`}
+                  className="w-full neu-input rounded-2xl pl-10 pr-10 py-2.5 text-sm placeholder:text-[var(--placeholder-color)]"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? (
-                    <EyeOff className="size-5 text-base-content/40 cursor-pointer z-10" />
-                  ) : (
-                    <Eye className="size-5 text-base-content/40 cursor-pointer z-10" />
-                  )}
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary w-full" disabled={isSigningUp}>
+            {/* Submit */}
+            <button
+              type="submit"
+              className="w-full neu-btn-accent py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 mt-2"
+              disabled={isSigningUp}
+            >
               {isSigningUp ? (
                 <>
-                  <Loader2 className="size-5 animate-spin" />
-                  Loading...
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>Creating Account...</span>
                 </>
               ) : (
                 "Create Account"
@@ -134,25 +138,28 @@ const SignUpPage = () => {
             </button>
           </form>
 
-          <div className="divider text-xs text-base-content/40 uppercase">Or</div>
+          {/* Divider */}
+          <div className="relative flex items-center justify-center my-3">
+            <div className="w-full border-t border-[var(--border-color)]"></div>
+            <span className="absolute px-3 py-0.5 neu-inset-sm rounded-full text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-wider">
+              Or
+            </span>
+          </div>
 
           <GoogleAuthButton />
 
-          <div className="text-center">
-            <p className="text-base-content/60">
+          <div className="text-center pt-1">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">
               Already have an account?{" "}
-              <Link to="/login" className="link link-primary">
+              <Link to="/login" className="text-[var(--accent-color)] font-bold hover:underline">
                 Sign in
               </Link>
             </p>
           </div>
         </div>
       </div>
-
-      {/* right side */}
-
-      {/* <AuthImagePattern/> */}
     </div>
   );
 };
+
 export default SignUpPage;

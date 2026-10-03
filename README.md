@@ -5,6 +5,8 @@ A modern, production-grade, real-time messaging application built with the MERN 
 Designed for high performance, security, and smooth cross-domain production deployment on **Vercel** (Frontend) and **Render** (Backend).
 
 🌐 **Live Application**: [https://syncrona.vercel.app](https://syncrona.vercel.app)  
+⚡ **Backend API**: [https://syncrona-backend.onrender.com](https://syncrona-backend.onrender.com)
+
 ---
 
 

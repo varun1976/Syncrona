@@ -25,9 +25,9 @@ const GoogleAuthButton = () => {
       <button
         type="button"
         onClick={() => toast.error("Google Client ID is not configured in VITE_GOOGLE_CLIENT_ID")}
-        className="btn btn-outline w-full flex items-center justify-center gap-2"
+        className="neu-btn w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-wider text-slate-700"
       >
-        <svg className="w-5 h-5" viewBox="0 0 24 24">
+        <svg className="w-4 h-4" viewBox="0 0 24 24">
           <path
             fill="#4285F4"
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -51,14 +51,14 @@ const GoogleAuthButton = () => {
   }
 
   return (
-    <div className="w-full flex flex-col items-center justify-center min-h-[40px] relative">
+    <div className="w-full flex flex-col items-center justify-center min-h-[42px] relative neu-raised rounded-2xl p-1 overflow-hidden">
       {isLoggingIn ? (
-        <button type="button" className="btn btn-outline w-full flex items-center justify-center gap-2" disabled>
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          <span>Authenticating with Google...</span>
+        <button type="button" className="neu-btn w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2" disabled>
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+          <span className="text-xs font-semibold">Authenticating with Google...</span>
         </button>
       ) : (
-        <div className="w-full flex justify-center overflow-hidden rounded-lg">
+        <div className="w-full flex justify-center overflow-hidden rounded-xl">
           <GoogleLogin
             onSuccess={handleSuccess}
             onError={handleError}

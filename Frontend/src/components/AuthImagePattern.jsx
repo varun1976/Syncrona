@@ -2,44 +2,47 @@ import React from "react";
 
 const AuthImagePattern = () => {
     const rotateOne = {
-        animation: "rotateOne 1s linear infinite",
+        animation: "rotateOne 3s linear infinite",
         transform: "rotateX(35deg) rotateY(-45deg)",
-        borderBottom: "8px solid #f13a8f",
+        borderBottom: "4px solid var(--accent-color)",
+        boxShadow: "0 0 10px var(--accent-color)",
     };
 
     const rotateTwo = {
-        animation: "rotateTwo 1s linear infinite",
+        animation: "rotateTwo 3s linear infinite",
         transform: "rotateX(50deg) rotateY(10deg)",
-        borderRight: "8px solid #4bc8eb",
+        borderRight: "4px solid var(--success-color)",
+        boxShadow: "0 0 10px var(--success-color)",
     };
 
     const rotateThree = {
-        animation: "rotateThree 1s linear infinite",
+        animation: "rotateThree 3s linear infinite",
         transform: "rotateX(35deg) rotateY(55deg)",
-        borderTop: "8px solid #36f372",
+        borderTop: "4px solid var(--text-muted)",
+        boxShadow: "0 0 10px var(--text-muted)",
     };
 
     return (
-        <div className="h-screen w-full flex flex-col items-center justify-center text-white">
-            {/* Loader */}
-            <div className="relative w-80 h-80 rounded-full" style={{ perspective: "800px" }}>
-                <div className="absolute w-full h-full rounded-full" style={rotateOne} />
-                <div className="absolute w-full h-full rounded-full" style={rotateTwo} />
-                <div className="absolute w-full h-full rounded-full" style={rotateThree} />
+        <div className="hidden lg:flex h-full w-full flex-col items-center justify-center p-10 text-[var(--text-primary)] select-none neu-bg">
+            {/* Soft Neumorphic Ring Container */}
+            <div className="size-64 sm:size-72 rounded-full neu-raised-lg flex items-center justify-center p-6 relative">
+                <div className="relative w-full h-full rounded-full neu-inset p-4" style={{ perspective: "800px" }}>
+                    <div className="absolute inset-0 rounded-full" style={rotateOne} />
+                    <div className="absolute inset-0 rounded-full" style={rotateTwo} />
+                    <div className="absolute inset-0 rounded-full" style={rotateThree} />
+                </div>
             </div>
 
-            {/* Description */}
-            <p className="mt-8 text-center text-lg text-gray-100 max-w-sm px-6 leading-relaxed tracking-wide">
-                <span className="block text-xl font-semibold text-white animate-fade-in">
-                    Talk Tight, Day or Night,
-                </span>
-                <span className="block text-xl font-semibold text-white animate-fade-in delay-200">
+            {/* Subtitle Typography */}
+            <div className="mt-8 text-center max-w-sm space-y-1.5">
+                <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+                    Talk Tight, Day or Night
+                </h2>
+                <p className="text-xs font-semibold text-[var(--text-secondary)]">
                     Everything Just Feels Right.
-                </span>
-            </p>
+                </p>
+            </div>
 
-
-            {/* Keyframes */}
             <style>{`
         @keyframes rotateOne {
           to {
