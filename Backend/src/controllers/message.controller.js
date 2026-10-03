@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import Message from "../models/message.model.js";
@@ -19,18 +20,77 @@ export const getMessages = async (req, res) => {
   try {
     const { id: userToChatId } = req.params;
     const myId = req.user._id;
+    const cursor = req.query.cursor;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
 
-    const messages = await Message.find({
+    if (!mongoose.Types.ObjectId.isValid(userToChatId)) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_USER_ID",
+        message: "Invalid contact specified.",
+      });
+    }
+
+    let cursorFilter = {};
+    if (cursor) {
+      if (!mongoose.Types.ObjectId.isValid(cursor)) {
+        return res.status(400).json({
+          success: false,
+          code: "INVALID_CURSOR",
+          message: "Invalid pagination cursor provided.",
+        });
+      }
+
+      const cursorMsg = await Message.findById(cursor).select("createdAt _id").lean();
+      if (cursorMsg) {
+        cursorFilter = {
+          $or: [
+            { createdAt: { $lt: cursorMsg.createdAt } },
+            {
+              createdAt: cursorMsg.createdAt,
+              _id: { $lt: cursorMsg._id },
+            },
+          ],
+        };
+      } else {
+        cursorFilter = { _id: { $lt: cursor } };
+      }
+    }
+
+    const rawMessages = await Message.find({
       $or: [
         { senderId: myId, receiverId: userToChatId },
         { senderId: userToChatId, receiverId: myId },
       ],
-    });
+      ...cursorFilter,
+    })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit + 1)
+      .lean();
 
-    res.status(200).json(messages);
+    const hasMore = rawMessages.length > limit;
+    const pageMessages = hasMore ? rawMessages.slice(0, limit) : rawMessages;
+
+    const nextCursor =
+      hasMore && pageMessages.length > 0
+        ? pageMessages[pageMessages.length - 1]._id.toString()
+        : null;
+
+    const chronologicalMessages = pageMessages.reverse();
+
+    return res.status(200).json({
+      success: true,
+      messages: chronologicalMessages,
+      hasMore,
+      nextCursor,
+    });
   } catch (error) {
-    console.log("Error in getMessages controller: ", error.message);
-    res.status(500).json({ success: false, code: "MESSAGES_FETCH_FAILED", message: "Failed to load conversation history." });
+    console.error("Error in getMessages controller: ", error.message);
+    res.status(500).json({
+      success: false,
+      code: "MESSAGES_FETCH_FAILED",
+      message: "Failed to load conversation history.",
+    });
   }
 };
 

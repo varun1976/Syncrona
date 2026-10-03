@@ -1,5 +1,5 @@
 import { useChatStore } from "../store/useChatStore";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { MessageSquare, Loader2, AlertCircle, RotateCcw, Check } from "lucide-react";
 
 import ChatHeader from "./ChatHeader";
@@ -17,21 +17,65 @@ const ChatContainer = () => {
     subscribeToMessages,
     unsubscribeFromMessages,
     retryMessage,
+    hasMore,
+    loadMoreMessages,
+    isLoadingMore,
   } = useChatStore();
   const { authUser } = useAuthStore();
-  const messageEndRef = useRef(null);
+
+  const scrollContainerRef = useRef(null);
+  const prevScrollHeightRef = useRef(0);
+  const shouldMaintainScrollRef = useRef(false);
+  const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
+    isFirstLoadRef.current = true;
     getMessages(selectedUser._id);
     subscribeToMessages();
     return () => unsubscribeFromMessages();
   }, [selectedUser._id, getMessages]);
 
-  useEffect(() => {
-    if (messageEndRef.current && messages) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Trigger loadMoreMessages when user scrolls near the top
+    if (container.scrollTop <= 60 && hasMore && !isLoadingMore) {
+      prevScrollHeightRef.current = container.scrollHeight;
+      shouldMaintainScrollRef.current = true;
+      loadMoreMessages();
     }
-  }, [messages]);
+  };
+
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !messages) return;
+
+    if (shouldMaintainScrollRef.current) {
+      // Prepended older messages: adjust scrollTop to preserve viewport position
+      const newScrollHeight = container.scrollHeight;
+      const heightDiff = newScrollHeight - prevScrollHeightRef.current;
+      container.scrollTop = container.scrollTop + heightDiff;
+      shouldMaintainScrollRef.current = false;
+    } else if (isFirstLoadRef.current) {
+      // Initial load of conversation: scroll to bottom
+      container.scrollTop = container.scrollHeight;
+      if (messages.length > 0) {
+        isFirstLoadRef.current = false;
+      }
+    } else {
+      // Incoming or outgoing message arrival
+      const lastMessage = messages[messages.length - 1];
+      const isMyMessage = lastMessage?.senderId === authUser?._id;
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      const isNearBottom = distanceFromBottom <= 180;
+
+      if (isMyMessage || isNearBottom) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  }, [messages, authUser._id]);
 
   if (isMessagesLoading) {
     return (
@@ -48,8 +92,22 @@ const ChatContainer = () => {
       {/* Fixed Chat Header at top of conversation panel */}
       <ChatHeader />
 
-      {/* Independently Scrollable Message Stream */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-4 space-y-3.5 flex flex-col">
+      {/* Independently Scrollable Message Stream with Infinite Scroll */}
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-4 space-y-3.5 flex flex-col"
+      >
+        {/* Loading Indicator for Older Messages */}
+        {isLoadingMore && (
+          <div className="flex justify-center items-center py-2 text-[var(--accent-color)]">
+            <div className="flex items-center gap-2 neu-inset px-3.5 py-1.5 rounded-full text-xs font-semibold text-[var(--text-secondary)]">
+              <Loader2 className="size-3.5 animate-spin text-[var(--accent-color)]" />
+              <span>Loading older messages...</span>
+            </div>
+          </div>
+        )}
+
         {messages.length === 0 ? (
           /* Friendly Empty Conversation State */
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none my-auto">
@@ -74,7 +132,6 @@ const ChatContainer = () => {
               <div
                 key={message._id || message.tempId}
                 className={`flex items-end gap-2.5 min-w-0 ${isMe ? "justify-end" : "justify-start"}`}
-                ref={messageEndRef}
               >
                 {/* Incoming Avatar */}
                 {!isMe && (

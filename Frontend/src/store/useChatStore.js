@@ -10,6 +10,9 @@ export const useChatStore = create((set, get) => ({
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  isLoadingMore: false,
+  hasMore: false,
+  nextCursor: null,
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -25,20 +28,86 @@ export const useChatStore = create((set, get) => ({
   },
 
   getMessages: async (userId) => {
-    set({ isMessagesLoading: true });
+    if (!userId) return;
+    set({
+      isMessagesLoading: true,
+      messages: [],
+      hasMore: false,
+      nextCursor: null,
+      isLoadingMore: false,
+    });
+
     try {
-      const res = await axiosInstance.get(`/messages/${userId}`);
-      // Mark loaded history messages as sent
-      const formattedMessages = (res.data || []).map((m) => ({
+      const res = await axiosInstance.get(`/messages/${userId}?limit=50`);
+      const data = res.data;
+
+      const fetchedMessages = Array.isArray(data) ? data : data.messages || [];
+      const hasMore = Array.isArray(data) ? false : !!data.hasMore;
+      const nextCursor = Array.isArray(data) ? null : data.nextCursor || null;
+
+      const formattedMessages = fetchedMessages.map((m) => ({
         ...m,
-        status: "sent",
+        status: m.status || "sent",
       }));
-      set({ messages: formattedMessages });
+
+      // Race condition check: verify current conversation selection
+      const currentSelected = get().selectedUser;
+      if (currentSelected && currentSelected._id === userId) {
+        set({
+          messages: formattedMessages,
+          hasMore,
+          nextCursor,
+        });
+      }
     } catch (error) {
       const errorMsg = parseApiError(error, "Failed to load conversation history.");
       notify.error(errorMsg, "Messages Error");
     } finally {
       set({ isMessagesLoading: false });
+    }
+  },
+
+  loadMoreMessages: async () => {
+    const { selectedUser, hasMore, nextCursor, isLoadingMore } = get();
+    if (!selectedUser || !hasMore || !nextCursor || isLoadingMore) return;
+
+    set({ isLoadingMore: true });
+    const currentUserId = selectedUser._id;
+
+    try {
+      const res = await axiosInstance.get(
+        `/messages/${currentUserId}?cursor=${nextCursor}&limit=50`
+      );
+      const data = res.data;
+
+      const fetchedMessages = Array.isArray(data) ? data : data.messages || [];
+      const newHasMore = Array.isArray(data) ? false : !!data.hasMore;
+      const newNextCursor = Array.isArray(data) ? null : data.nextCursor || null;
+
+      const formattedNew = fetchedMessages.map((m) => ({
+        ...m,
+        status: m.status || "sent",
+      }));
+
+      // Race condition check: verify active user hasn't changed
+      const activeUser = get().selectedUser;
+      if (activeUser && activeUser._id === currentUserId) {
+        const currentMsgs = get().messages;
+        const existingIds = new Set(currentMsgs.map((m) => m._id));
+        const uniqueOlder = formattedNew.filter((m) => !existingIds.has(m._id));
+
+        set({
+          messages: [...uniqueOlder, ...currentMsgs],
+          hasMore: newHasMore,
+          nextCursor: newNextCursor,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading older messages:", error);
+      const errorMsg = parseApiError(error, "Failed to load older messages.");
+      notify.error(errorMsg, "Pagination Error");
+    } finally {
+      set({ isLoadingMore: false });
     }
   },
 
@@ -189,5 +258,13 @@ export const useChatStore = create((set, get) => ({
     if (socket) socket.off("newMessage");
   },
 
-  setSelectedUser: (selectedUser) => set({ selectedUser }),
+  setSelectedUser: (selectedUser) =>
+    set({
+      selectedUser,
+      messages: [],
+      hasMore: false,
+      nextCursor: null,
+      isLoadingMore: false,
+      isMessagesLoading: false,
+    }),
 }));
