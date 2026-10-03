@@ -10,6 +10,8 @@ export const useAuthStore = create((set, get) => ({
     isSigningUp: false,
     isLoggingIn: false,
     isUpdatingProfile: false,
+    isDeletingAccount: false,
+    isChangingPassword: false,
     onlineUsers: [],
     isCheckingAuth: true,
     checkAuth: async () => {
@@ -100,6 +102,37 @@ export const useAuthStore = create((set, get) => ({
             toast.error(error.response?.data?.message || "Update profile failed");
         } finally {
             set({ isUpdatingProfile: false });
+        }
+    },
+    changePassword: async (data) => {
+        set({ isChangingPassword: true });
+        try {
+            const res = await axiosInstance.put("/auth/change-password", data);
+            toast.success(res.data.message || "Password changed successfully");
+            return true;
+        } catch (error) {
+            const msg = error.response?.data?.message || "Failed to change password";
+            toast.error(msg);
+            throw error;
+        } finally {
+            set({ isChangingPassword: false });
+        }
+    },
+    deleteAccount: async () => {
+        set({ isDeletingAccount: true });
+        try {
+            await axiosInstance.delete("/auth/delete-account");
+            localStorage.removeItem("token");
+            get().disconnectSocket();
+            set({ authUser: null });
+            toast.success("Account deleted permanently");
+            return true;
+        } catch (error) {
+            const msg = error.response?.data?.message || "Failed to delete account";
+            toast.error(msg);
+            throw error;
+        } finally {
+            set({ isDeletingAccount: false });
         }
     },
     connectSocket: () => {
