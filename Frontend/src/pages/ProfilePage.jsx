@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { notify } from "../store/useNotificationStore";
 import {
@@ -19,6 +20,7 @@ import {
   Key,
   Pencil,
   Check,
+  ArrowLeft,
 } from "lucide-react";
 
 const ProfilePage = () => {
@@ -200,7 +202,22 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 neu-bg select-none transition-colors duration-200">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Top Back Navigation Bar */}
+        <div className="flex items-center justify-between">
+          <Link
+            to="/"
+            className="neu-btn px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] hover:text-[var(--accent-color)]"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span>Back to Home</span>
+          </Link>
+          <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider neu-inset-sm px-3 py-1 rounded-full">
+            User Account Dashboard
+          </span>
+        </div>
+
         {/* Main Card Wrapper */}
         <div className="neu-raised-lg rounded-3xl p-6 sm:p-8 lg:p-10 space-y-8">
           

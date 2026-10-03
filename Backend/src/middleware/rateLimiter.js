@@ -73,3 +73,12 @@ export const getMessagesLimiter = createLimiter({
   limitType: "GET_MESSAGES",
   customMessage: "Too many message fetch requests. Please slow down.",
 });
+
+// 6. Contact Form Limiter (5 requests / 15 minutes)
+export const contactLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  limitType: "CONTACT_FORM",
+  customMessage: "Too many contact form submissions. Please wait 15 minutes before sending another inquiry.",
+});
+

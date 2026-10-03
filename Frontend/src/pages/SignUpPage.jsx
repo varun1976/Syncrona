@@ -14,6 +14,7 @@ const SignUpPage = () => {
     password: "",
   });
 
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { signup, isSigningUp } = useAuthStore();
 
   const validateForm = () => {
@@ -35,6 +36,10 @@ const SignUpPage = () => {
     }
     if (formData.password.length < 6) {
       notify.error("Password must be at least 6 characters long.", "Validation Error");
+      return false;
+    }
+    if (!acceptedTerms) {
+      notify.error("You must agree to the Terms of Service and Privacy Policy to create an account.", "Agreement Required");
       return false;
     }
 
@@ -134,6 +139,27 @@ const SignUpPage = () => {
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
+            </div>
+
+            {/* Terms Acceptance Checkbox */}
+            <div className="flex items-start gap-2.5 pt-1">
+              <input
+                type="checkbox"
+                id="acceptTerms"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 size-4 rounded border-[var(--border-color)] accent-[var(--accent-color)] cursor-pointer"
+              />
+              <label htmlFor="acceptTerms" className="text-xs font-medium text-[var(--text-secondary)] leading-tight select-none cursor-pointer">
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" className="text-[var(--accent-color)] font-bold hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy-policy" target="_blank" className="text-[var(--accent-color)] font-bold hover:underline">
+                  Privacy Policy
+                </Link>.
+              </label>
             </div>
 
             {/* Submit */}
