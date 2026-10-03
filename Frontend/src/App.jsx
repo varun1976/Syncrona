@@ -12,33 +12,36 @@ import { Loader } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
-
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-  const {theme}=useThemeStore();
+  const { theme } = useThemeStore();
+
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   if (isCheckingAuth && !authUser)
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader className="size-10 animate-spin" />
+      <div data-theme={theme} className="flex items-center justify-center h-screen neu-bg">
+        <div className="p-6 rounded-3xl neu-raised flex flex-col items-center gap-3">
+          <Loader className="size-8 animate-spin text-indigo-600" />
+          <span className="text-xs font-semibold text-slate-500 tracking-wider uppercase">Loading Syncrona...</span>
+        </div>
       </div>
     );
+
   return (
-    <div data-theme={theme}>
-      <Navbar/>
+    <div data-theme={theme} className="neu-bg min-h-screen text-slate-800">
+      <Navbar />
       <Routes>
         <Route path="/" element={authUser ? <HomePage /> : <Navigate to="/login" />} />
         <Route path="/signup" element={!authUser ? <SignUpPage /> : <Navigate to="/" />} />
         <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
-
       </Routes>
-      <Toaster/>
+      <Toaster position="top-center" />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

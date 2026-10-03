@@ -1,35 +1,28 @@
 import { Users } from "lucide-react";
 
 const SidebarSkeleton = () => {
-  // Create 8 skeleton items
-  const skeletonContacts = Array(8).fill(null);
+  const skeletonContacts = Array(7).fill(null);
 
   return (
-    <aside
-      className="h-full w-20 lg:w-72 border-r border-base-300 
-    flex flex-col transition-all duration-200"
-    >
-      {/* Header */}
-      <div className="border-b border-base-300 w-full p-5">
-        <div className="flex items-center gap-2">
-          <Users className="w-6 h-6" />
-          <span className="font-medium hidden lg:block">Contacts</span>
+    <aside className="h-full w-20 lg:w-80 flex flex-col neu-bg border-r border-[var(--border-color)]">
+      <div className="pt-2.5 pb-3 px-3.5 sm:px-4 space-y-2.5 border-b border-[var(--border-color)] flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-xl neu-inset animate-pulse" />
+            <div className="hidden lg:block h-4 w-24 neu-inset rounded-md animate-pulse" />
+          </div>
+          <div className="hidden lg:block h-5 w-16 neu-inset rounded-full animate-pulse" />
         </div>
+        <div className="hidden lg:block h-11 w-full neu-inset rounded-2xl animate-pulse" />
       </div>
 
-      {/* Skeleton Contacts */}
-      <div className="overflow-y-auto w-full py-3">
+      <div className="overflow-y-auto w-full py-2 px-2 space-y-2 flex-1 min-h-0">
         {skeletonContacts.map((_, idx) => (
-          <div key={idx} className="w-full p-3 flex items-center gap-3">
-            {/* Avatar skeleton */}
-            <div className="relative mx-auto lg:mx-0">
-              <div className="skeleton size-12 rounded-full" />
-            </div>
-
-            {/* User info skeleton - only visible on larger screens */}
-            <div className="hidden lg:block text-left min-w-0 flex-1">
-              <div className="skeleton h-4 w-32 mb-2" />
-              <div className="skeleton h-3 w-16" />
+          <div key={idx} className="w-full p-2.5 flex items-center gap-3 rounded-xl animate-pulse">
+            <div className="size-10 rounded-full neu-inset flex-shrink-0 mx-auto lg:mx-0" />
+            <div className="hidden lg:block text-left min-w-0 flex-1 space-y-1.5">
+              <div className="h-4 w-24 neu-inset rounded-md" />
+              <div className="h-2.5 w-14 neu-inset rounded-md" />
             </div>
           </div>
         ))}

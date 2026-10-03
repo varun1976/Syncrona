@@ -84,3 +84,5 @@ tmp/
 storage/
 public/hot/
 public/storage/
+README.md
+PROJECT_TECHNICAL_AUDIT.md
