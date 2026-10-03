@@ -21,6 +21,7 @@ export const getMessages = async (req, res) => {
     const { id: userToChatId } = req.params;
     const myId = req.user._id;
     const cursor = req.query.cursor;
+    const since = req.query.since;
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
 
     if (!mongoose.Types.ObjectId.isValid(userToChatId)) {
@@ -28,6 +29,44 @@ export const getMessages = async (req, res) => {
         success: false,
         code: "INVALID_USER_ID",
         message: "Invalid contact specified.",
+      });
+    }
+
+    // Handle background synchronization (fetching messages newer than `since`)
+    if (since) {
+      let sinceFilter = {};
+      if (mongoose.Types.ObjectId.isValid(since)) {
+        const sinceMsg = await Message.findById(since).select("createdAt _id").lean();
+        if (sinceMsg) {
+          sinceFilter = {
+            $or: [
+              { createdAt: { $gt: sinceMsg.createdAt } },
+              {
+                createdAt: sinceMsg.createdAt,
+                _id: { $gt: sinceMsg._id },
+              },
+            ],
+          };
+        } else {
+          sinceFilter = { _id: { $gt: since } };
+        }
+      }
+
+      const syncMessages = await Message.find({
+        $or: [
+          { senderId: myId, receiverId: userToChatId },
+          { senderId: userToChatId, receiverId: myId },
+        ],
+        ...sinceFilter,
+      })
+        .sort({ createdAt: 1, _id: 1 })
+        .limit(limit)
+        .lean();
+
+      return res.status(200).json({
+        success: true,
+        messages: syncMessages,
+        isSync: true,
       });
     }
 
