@@ -106,7 +106,8 @@ const formatInlineMarkdown = (text) => {
   });
 };
 
-const LegalPageLayout = ({ icon: Icon, data }) => {
+const LegalPageLayout = ({ icon, data }) => {
+  const PageIcon = icon;
   useEffect(() => {
     document.title = `${data.title} | Syncrona`;
     window.scrollTo(0, 0);
@@ -134,7 +135,7 @@ const LegalPageLayout = ({ icon: Icon, data }) => {
         <div className="neu-raised-lg rounded-3xl p-6 sm:p-8 border border-[var(--border-color)]">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="size-14 rounded-2xl neu-inset flex items-center justify-center text-[var(--accent-color)] flex-shrink-0">
-              <Icon className="size-7 text-[var(--accent-color)]" />
+              <PageIcon className="size-7 text-[var(--accent-color)]" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">

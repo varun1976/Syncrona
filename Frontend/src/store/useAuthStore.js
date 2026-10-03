@@ -123,7 +123,7 @@ export const useAuthStore = create((set, get) => ({
     changePassword: async (data) => {
         set({ isChangingPassword: true });
         try {
-            const res = await axiosInstance.put("/auth/change-password", data);
+            await axiosInstance.put("/auth/change-password", data);
             notify.success("Your password has been changed successfully.", "Password Updated");
             return true;
         } catch (error) {
