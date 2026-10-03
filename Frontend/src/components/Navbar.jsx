@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { LogOut, MessageSquare, Settings, User } from "lucide-react";
+import { Headphones, LogOut, MessageSquare, Settings, User } from "lucide-react";
 
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
@@ -29,6 +29,14 @@ const Navbar = () => {
             >
               <Settings className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Settings</span>
+            </Link>
+
+            <Link
+              to={"/contact"}
+              className="neu-btn px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent-color)]"
+            >
+              <Headphones className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Support</span>
             </Link>
 
             {authUser && (

@@ -1,6 +1,7 @@
 import express from 'express';
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
+import supportRoutes from './routes/support.route.js';
 import dotenv from 'dotenv';
 import { connectDB } from './lib/db.js';
 import cookieParser from 'cookie-parser';
@@ -67,6 +68,7 @@ app.use("/api", globalLimiter);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/support", supportRoutes);
 
 // Structured error handling middleware
 app.use((err, req, res, next) => {
