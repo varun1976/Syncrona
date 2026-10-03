@@ -8,6 +8,17 @@ export const submitContactForm = async (req, res) => {
   try {
     const { name, email, category, subject, message, website } = req.body;
 
+    if (
+      (name !== undefined && typeof name !== "string") ||
+      (email !== undefined && typeof email !== "string") ||
+      (category !== undefined && typeof category !== "string") ||
+      (subject !== undefined && typeof subject !== "string") ||
+      (message !== undefined && typeof message !== "string") ||
+      (website !== undefined && typeof website !== "string")
+    ) {
+      return res.status(400).json({ success: false, message: "Invalid payload format." });
+    }
+
     // Honeypot spam check: if website field is filled, return synthetic success without processing
     if (website && website.trim().length > 0) {
       console.warn(`[SPAM BLOCKED] Honeypot field filled by IP: ${req.ip}`);

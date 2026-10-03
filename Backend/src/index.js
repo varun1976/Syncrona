@@ -21,6 +21,10 @@ app.set('trust proxy', 1);
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    xContentTypeOptions: true,
+    xDnsPrefetchControl: { allow: false },
+    xFrameOptions: { action: "deny" },
   })
 );
 
@@ -32,15 +36,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Dynamic CORS configuration allowing Vercel frontend (*.vercel.app) and local development
+// Strict CORS configuration allowing designated client URL and local development
 const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.trim().replace(/\/$/, '') : '';
 
 const isAllowedOrigin = (origin) => {
   if (!origin) return true; // Server-to-server or postman requests
   const cleanOrigin = origin.trim().replace(/\/$/, '');
   if (clientUrl && cleanOrigin === clientUrl) return true;
-  if (cleanOrigin === 'http://localhost:5173' || cleanOrigin === 'http://localhost:3000') return true;
-  if (cleanOrigin.endsWith('.vercel.app')) return true; // Automatically allow all Vercel deployments
+  if (cleanOrigin === 'http://localhost:5173' || cleanOrigin === 'http://localhost:3000' || cleanOrigin === 'http://localhost:4173') return true;
   return false;
 };
 

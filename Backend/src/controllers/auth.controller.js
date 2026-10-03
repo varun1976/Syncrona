@@ -8,7 +8,14 @@ import { OAuth2Client } from "google-auth-library";
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
   try {
-    if (!fullName || !email || !password) {
+    if (typeof fullName !== "string" || typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ message: "Invalid payload format" });
+    }
+
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedName || !trimmedEmail || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -16,7 +23,7 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: trimmedEmail });
 
     if (user) return res.status(400).json({ message: "Email already exists" });
 
@@ -24,8 +31,8 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new User({
-      fullName,
-      email,
+      fullName: trimmedName,
+      email: trimmedEmail,
       password: hashedPassword,
     });
 
@@ -52,7 +59,12 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ message: "Invalid payload format" });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: trimmedEmail });
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -100,6 +112,9 @@ export const updateProfile = async (req, res) => {
     const updateFields = {};
 
     if (fullName !== undefined) {
+      if (typeof fullName !== "string") {
+        return res.status(400).json({ message: "Full name must be a string" });
+      }
       const trimmedName = fullName.trim();
       if (!trimmedName) {
         return res.status(400).json({ message: "Full name cannot be empty" });
@@ -111,9 +126,25 @@ export const updateProfile = async (req, res) => {
     }
 
     if (profilePic) {
+      if (typeof profilePic !== "string") {
+        return res.status(400).json({ message: "Profile picture payload must be a string" });
+      }
+
+      const isValidBase64 = /^data:image\/(png|jpeg|jpg|webp|gif);base64,/.test(profilePic);
+      const isValidUrl = /^https:\/\//.test(profilePic);
+      if (!isValidBase64 && !isValidUrl) {
+        return res.status(400).json({
+          success: false,
+          code: "INVALID_IMAGE_FORMAT",
+          message: "Please upload a valid image file (PNG, JPG, WEBP, or GIF).",
+        });
+      }
+
       try {
         const uploadResponse = await cloudinary.uploader.upload(profilePic, {
           folder: "syncrona_avatars",
+          resource_type: "image",
+          allowed_formats: ["jpg", "jpeg", "png", "webp", "gif"],
         });
         updateFields.profilePic = uploadResponse.secure_url;
       } catch (cloudinaryErr) {
@@ -228,13 +259,13 @@ export const deleteAccount = async (req, res) => {
     }
 
     // Clean up Cloudinary profile image if custom image exists
-    if (user.profilePic && user.profilePic.includes("cloudinary.com")) {
+    if (user.profilePic && user.profilePic.includes("cloudinary.com") && user.profilePic.includes("syncrona_avatars")) {
       try {
         const parts = user.profilePic.split("/");
         const filename = parts[parts.length - 1];
         const publicId = filename.split(".")[0];
         if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
+          await cloudinary.uploader.destroy(`syncrona_avatars/${publicId}`);
         }
       } catch (cloudinaryErr) {
         console.log("Error cleaning up Cloudinary image:", cloudinaryErr.message);
@@ -262,6 +293,10 @@ export const deleteAccount = async (req, res) => {
 export const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   try {
+    if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
+      return res.status(400).json({ message: "Invalid payload format" });
+    }
+
     const userId = req.user._id;
     const user = await User.findById(userId);
 

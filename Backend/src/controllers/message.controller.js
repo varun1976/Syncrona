@@ -7,7 +7,7 @@ import { getReceiverSocketId, io } from "../lib/socket.js";
 export const getUsersForSidebar = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
-    const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
+    const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password -googleId");
 
     res.status(200).json(filteredUsers);
   } catch (error) {
@@ -118,11 +118,27 @@ export const sendMessage = async (req, res) => {
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
+    if (text !== undefined && typeof text !== "string") {
+      return res.status(400).json({ success: false, code: "INVALID_TEXT_FORMAT", message: "Message text must be a string." });
+    }
+
+    if (image !== undefined && typeof image !== "string") {
+      return res.status(400).json({ success: false, code: "INVALID_IMAGE_FORMAT", message: "Image payload must be a string." });
+    }
+
     if (!text?.trim() && !image) {
       return res.status(400).json({
         success: false,
         code: "EMPTY_MESSAGE",
         message: "Message must contain text or an image attachment.",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(receiverId)) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_RECEIVER_ID",
+        message: "Invalid recipient identifier.",
       });
     }
 
@@ -137,10 +153,22 @@ export const sendMessage = async (req, res) => {
 
     let imageUrl;
     if (image) {
+      const isValidBase64 = /^data:image\/(png|jpeg|jpg|webp|gif);base64,/.test(image);
+      const isValidUrl = /^https:\/\//.test(image);
+      if (!isValidBase64 && !isValidUrl) {
+        return res.status(400).json({
+          success: false,
+          code: "INVALID_IMAGE_TYPE",
+          message: "Please attach a valid image format (PNG, JPG, WEBP, or GIF).",
+        });
+      }
+
       try {
-        // Upload base64 image to Cloudinary
+        // Upload base64 image to Cloudinary securely
         const uploadResponse = await cloudinary.uploader.upload(image, {
           folder: "syncrona_chats",
+          resource_type: "image",
+          allowed_formats: ["jpg", "jpeg", "png", "webp", "gif"],
         });
         imageUrl = uploadResponse.secure_url;
       } catch (cloudinaryError) {
