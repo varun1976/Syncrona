@@ -18,6 +18,11 @@ const ChatHeader = () => {
                 src={selectedUser.profilePic || "/avatar.png"}
                 alt={selectedUser.fullName}
                 className="size-full object-cover rounded-full"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/avatar.png";
+                }}
               />
             </div>
             {isOnline && (

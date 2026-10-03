@@ -41,6 +41,11 @@ const ProfilePage = () => {
                   src={selectedImg || authUser?.profilePic || "/avatar.png"}
                   alt="Profile"
                   className="size-full rounded-full object-cover neu-inset-sm"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "/avatar.png";
+                  }}
                 />
               </div>
               <label

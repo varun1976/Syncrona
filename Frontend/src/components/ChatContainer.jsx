@@ -79,6 +79,11 @@ const ChatContainer = () => {
                       src={selectedUser.profilePic || "/avatar.png"}
                       alt="profile pic"
                       className="size-full object-cover rounded-full"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/avatar.png";
+                      }}
                     />
                   </div>
                 )}
@@ -142,6 +147,11 @@ const ChatContainer = () => {
                       src={authUser.profilePic || "/avatar.png"}
                       alt="profile pic"
                       className="size-full object-cover rounded-full"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/avatar.png";
+                      }}
                     />
                   </div>
                 )}
