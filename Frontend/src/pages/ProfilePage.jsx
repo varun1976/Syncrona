@@ -83,7 +83,7 @@ const ProfilePage = () => {
       setSelectedImg(base64Image);
       try {
         await updateProfile({ profilePic: base64Image });
-      } catch (err) {
+      } catch {
         setSelectedImg(null);
       }
     };

@@ -14,7 +14,7 @@ const DEFAULT_TITLES = {
   error: "Error",
 };
 
-export const useNotificationStore = create((set, get) => ({
+export const useNotificationStore = create((set) => ({
   notifications: [],
 
   addNotification: ({ type = "info", title, message, duration }) => {

@@ -24,6 +24,7 @@ export const NotificationProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNotificationContext = () => {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -37,5 +38,3 @@ export const useNotificationContext = () => {
   }
   return context;
 };
-
-export { notify };
