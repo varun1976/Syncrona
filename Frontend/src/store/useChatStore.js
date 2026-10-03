@@ -4,6 +4,142 @@ import { parseApiError } from "../lib/errorHandler";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 
+/**
+ * In-Memory Conversation Cache (LRU Eviction)
+ * Stores recent conversations in memory for instant switching & background sync.
+ */
+class ConversationCache {
+  constructor(maxConversations = 10, maxMsgsPerConv = 200) {
+    this.cache = new Map(); // key: userId -> { messages, hasMore, nextCursor, lastAccessed }
+    this.maxConversations = maxConversations;
+    this.maxMsgsPerConv = maxMsgsPerConv;
+  }
+
+  get(userId) {
+    if (!this.cache.has(userId)) return null;
+    const entry = this.cache.get(userId);
+    entry.lastAccessed = Date.now();
+    return entry;
+  }
+
+  set(userId, data) {
+    const existing = this.cache.get(userId) || { messages: [], hasMore: false, nextCursor: null };
+    const rawMessages = data.messages !== undefined ? data.messages : existing.messages;
+
+    const uniqueMsgs = [];
+    const seenIds = new Set();
+
+    for (const msg of rawMessages) {
+      const idKey = msg._id || msg.tempId;
+      if (idKey && !seenIds.has(idKey)) {
+        seenIds.add(idKey);
+        uniqueMsgs.push(msg);
+      }
+    }
+
+    const trimmedMsgs =
+      uniqueMsgs.length > this.maxMsgsPerConv
+        ? uniqueMsgs.slice(-this.maxMsgsPerConv)
+        : uniqueMsgs;
+
+    this.cache.set(userId, {
+      messages: trimmedMsgs,
+      hasMore: data.hasMore !== undefined ? data.hasMore : existing.hasMore,
+      nextCursor: data.nextCursor !== undefined ? data.nextCursor : existing.nextCursor,
+      lastAccessed: Date.now(),
+    });
+
+    this.enforceLRU(userId);
+  }
+
+  appendSyncMessages(userId, newMessages) {
+    if (!newMessages || newMessages.length === 0) return;
+    const entry = this.cache.get(userId);
+    if (!entry) return;
+
+    const existingIds = new Set(entry.messages.map((m) => m._id || m.tempId));
+    const formatted = newMessages
+      .filter((m) => !existingIds.has(m._id))
+      .map((m) => ({ ...m, status: m.status || "sent" }));
+
+    if (formatted.length > 0) {
+      entry.messages = [...entry.messages, ...formatted];
+      if (entry.messages.length > this.maxMsgsPerConv) {
+        entry.messages = entry.messages.slice(-this.maxMsgsPerConv);
+      }
+      entry.lastAccessed = Date.now();
+    }
+  }
+
+  prependOlderMessages(userId, olderMessages, newHasMore, newNextCursor) {
+    const entry = this.cache.get(userId);
+    if (!entry) return;
+
+    const existingIds = new Set(entry.messages.map((m) => m._id || m.tempId));
+    const formatted = olderMessages
+      .filter((m) => !existingIds.has(m._id))
+      .map((m) => ({ ...m, status: m.status || "sent" }));
+
+    entry.messages = [...formatted, ...entry.messages];
+    if (entry.messages.length > this.maxMsgsPerConv) {
+      entry.messages = entry.messages.slice(-this.maxMsgsPerConv);
+    }
+    entry.hasMore = newHasMore;
+    entry.nextCursor = newNextCursor;
+    entry.lastAccessed = Date.now();
+  }
+
+  updateMessage(userId, updatedMsg) {
+    let entry = this.cache.get(userId);
+    if (!entry) {
+      entry = { messages: [], hasMore: false, nextCursor: null, lastAccessed: Date.now() };
+      this.cache.set(userId, entry);
+    }
+
+    const idx = entry.messages.findIndex(
+      (m) =>
+        m._id === updatedMsg._id ||
+        (updatedMsg.tempId && (m._id === updatedMsg.tempId || m.tempId === updatedMsg.tempId))
+    );
+
+    if (idx !== -1) {
+      entry.messages[idx] = { ...entry.messages[idx], ...updatedMsg };
+    } else {
+      entry.messages.push(updatedMsg);
+    }
+
+    if (entry.messages.length > this.maxMsgsPerConv) {
+      entry.messages = entry.messages.slice(-this.maxMsgsPerConv);
+    }
+    entry.lastAccessed = Date.now();
+    this.enforceLRU(userId);
+  }
+
+  enforceLRU(activeUserId) {
+    if (this.cache.size <= this.maxConversations) return;
+
+    let lruKey = null;
+    let oldestTime = Infinity;
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (key !== activeUserId && entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        lruKey = key;
+      }
+    }
+
+    if (lruKey) {
+      this.cache.delete(lruKey);
+    }
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+}
+
+const messageCache = new ConversationCache(10, 200);
+
 export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
@@ -29,6 +165,24 @@ export const useChatStore = create((set, get) => ({
 
   getMessages: async (userId) => {
     if (!userId) return;
+
+    // 1. Instant Cache Hit: Display cached messages immediately with 0ms delay!
+    const cached = messageCache.get(userId);
+    if (cached) {
+      set({
+        messages: cached.messages,
+        hasMore: cached.hasMore,
+        nextCursor: cached.nextCursor,
+        isMessagesLoading: false,
+        isLoadingMore: false,
+      });
+
+      // Background synchronization for missed messages while away
+      get().syncMissedMessages(userId);
+      return;
+    }
+
+    // 2. Cache Miss: Fetch initial 50 messages from backend
     set({
       isMessagesLoading: true,
       messages: [],
@@ -50,7 +204,14 @@ export const useChatStore = create((set, get) => ({
         status: m.status || "sent",
       }));
 
-      // Race condition check: verify current conversation selection
+      // Update in-memory cache
+      messageCache.set(userId, {
+        messages: formattedMessages,
+        hasMore,
+        nextCursor,
+      });
+
+      // Update store state if conversation selection matches
       const currentSelected = get().selectedUser;
       if (currentSelected && currentSelected._id === userId) {
         set({
@@ -64,6 +225,37 @@ export const useChatStore = create((set, get) => ({
       notify.error(errorMsg, "Messages Error");
     } finally {
       set({ isMessagesLoading: false });
+    }
+  },
+
+  syncMissedMessages: async (userId) => {
+    const cached = messageCache.get(userId);
+    if (!cached || cached.messages.length === 0) return;
+
+    // Get latest server-persisted message ID
+    const validServerMsgs = cached.messages.filter((m) => m._id && !m._id.startsWith("temp_"));
+    const latestMsg = validServerMsgs[validServerMsgs.length - 1];
+    if (!latestMsg?._id) return;
+
+    try {
+      const res = await axiosInstance.get(`/messages/${userId}?since=${latestMsg._id}`);
+      const newMsgs = res.data.messages || [];
+
+      if (newMsgs.length > 0) {
+        messageCache.appendSyncMessages(userId, newMsgs);
+
+        // Update active UI state if currently viewing conversation
+        const activeUser = get().selectedUser;
+        if (activeUser && activeUser._id === userId) {
+          const updatedEntry = messageCache.get(userId);
+          if (updatedEntry) {
+            set({ messages: updatedEntry.messages });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Background sync error:", error);
+      // Keep cached messages intact on background sync error
     }
   },
 
@@ -84,23 +276,25 @@ export const useChatStore = create((set, get) => ({
       const newHasMore = Array.isArray(data) ? false : !!data.hasMore;
       const newNextCursor = Array.isArray(data) ? null : data.nextCursor || null;
 
-      const formattedNew = fetchedMessages.map((m) => ({
-        ...m,
-        status: m.status || "sent",
-      }));
+      // Update in-memory cache with prepended older messages
+      messageCache.prependOlderMessages(
+        currentUserId,
+        fetchedMessages,
+        newHasMore,
+        newNextCursor
+      );
 
-      // Race condition check: verify active user hasn't changed
+      // Update active state if conversation hasn't changed
       const activeUser = get().selectedUser;
       if (activeUser && activeUser._id === currentUserId) {
-        const currentMsgs = get().messages;
-        const existingIds = new Set(currentMsgs.map((m) => m._id));
-        const uniqueOlder = formattedNew.filter((m) => !existingIds.has(m._id));
-
-        set({
-          messages: [...uniqueOlder, ...currentMsgs],
-          hasMore: newHasMore,
-          nextCursor: newNextCursor,
-        });
+        const cached = messageCache.get(currentUserId);
+        if (cached) {
+          set({
+            messages: cached.messages,
+            hasMore: cached.hasMore,
+            nextCursor: cached.nextCursor,
+          });
+        }
       }
     } catch (error) {
       console.error("Error loading older messages:", error);
@@ -115,7 +309,6 @@ export const useChatStore = create((set, get) => ({
     const { selectedUser, sendOptimisticMessage } = get();
     if (!selectedUser) return;
 
-    // Delegate to optimistic handler
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const optimisticMsg = {
       _id: tempId,
@@ -134,20 +327,15 @@ export const useChatStore = create((set, get) => ({
   },
 
   sendOptimisticMessage: async (optimisticMsg) => {
-    const { messages } = get();
+    const receiverId = optimisticMsg.receiverId;
 
-    // 1. Immediately render optimistic message in chat
-    const exists = messages.some((m) => m._id === optimisticMsg._id || m.tempId === optimisticMsg.tempId);
-    if (!exists) {
-      set({ messages: [...messages, optimisticMsg] });
-    } else {
-      set((state) => ({
-        messages: state.messages.map((m) =>
-          m._id === optimisticMsg._id || m.tempId === optimisticMsg.tempId
-            ? { ...m, ...optimisticMsg, status: "uploading", progress: 0 }
-            : m
-        ),
-      }));
+    // 1. Immediately update store & in-memory cache
+    messageCache.updateMessage(receiverId, optimisticMsg);
+
+    const activeUser = get().selectedUser;
+    if (activeUser && activeUser._id === receiverId) {
+      const cached = messageCache.get(receiverId);
+      if (cached) set({ messages: cached.messages });
     }
 
     // 2. Perform background upload & message save
@@ -158,50 +346,58 @@ export const useChatStore = create((set, get) => ({
         tempId: optimisticMsg.tempId,
       };
 
-      const res = await axiosInstance.post(
-        `/messages/send/${optimisticMsg.receiverId}`,
-        payload,
-        {
-          onUploadProgress: (progressEvent) => {
-            const total = progressEvent.total || progressEvent.loaded;
-            const pct = total ? Math.min(99, Math.round((progressEvent.loaded * 100) / total)) : 50;
-            set((state) => ({
-              messages: state.messages.map((m) =>
-                m._id === optimisticMsg.tempId || m.tempId === optimisticMsg.tempId
-                  ? { ...m, progress: pct, status: pct >= 95 ? "saving" : "uploading" }
-                  : m
-              ),
-            }));
-          },
-        }
-      );
+      const res = await axiosInstance.post(`/messages/send/${receiverId}`, payload, {
+        onUploadProgress: (progressEvent) => {
+          const total = progressEvent.total || progressEvent.loaded;
+          const pct = total ? Math.min(99, Math.round((progressEvent.loaded * 100) / total)) : 50;
+
+          const updatedMsg = {
+            _id: optimisticMsg.tempId,
+            tempId: optimisticMsg.tempId,
+            progress: pct,
+            status: pct >= 95 ? "saving" : "uploading",
+          };
+
+          messageCache.updateMessage(receiverId, updatedMsg);
+
+          if (get().selectedUser?._id === receiverId) {
+            const cached = messageCache.get(receiverId);
+            if (cached) set({ messages: cached.messages });
+          }
+        },
+      });
 
       // 3. Reconcile optimistic message with server-confirmed message
-      const serverMessage = res.data;
-      set((state) => ({
-        messages: state.messages.map((m) =>
-          m._id === optimisticMsg.tempId || m.tempId === optimisticMsg.tempId
-            ? {
-                ...serverMessage,
-                status: "sent",
-                progress: 100,
-                // Keep local blob preview image if Cloudinary URL takes time to cache
-                image: serverMessage.image || m.image,
-              }
-            : m
-        ),
-      }));
+      const serverMessage = {
+        ...res.data,
+        status: "sent",
+        progress: 100,
+      };
+
+      messageCache.updateMessage(receiverId, serverMessage);
+
+      if (get().selectedUser?._id === receiverId) {
+        const cached = messageCache.get(receiverId);
+        if (cached) set({ messages: cached.messages });
+      }
     } catch (error) {
       console.error("Optimistic send error:", error);
-      set((state) => ({
-        messages: state.messages.map((m) =>
-          m._id === optimisticMsg.tempId || m.tempId === optimisticMsg.tempId
-            ? { ...m, status: "failed", progress: 0 }
-            : m
-        ),
-      }));
 
-      const errorMsg = parseApiError(error, "Failed to deliver image attachment.");
+      const failedMsg = {
+        _id: optimisticMsg.tempId,
+        tempId: optimisticMsg.tempId,
+        status: "failed",
+        progress: 0,
+      };
+
+      messageCache.updateMessage(receiverId, failedMsg);
+
+      if (get().selectedUser?._id === receiverId) {
+        const cached = messageCache.get(receiverId);
+        if (cached) set({ messages: cached.messages });
+      }
+
+      const errorMsg = parseApiError(error, "Failed to deliver message attachment.");
       notify.error(errorMsg, "Delivery Failed");
     }
   },
@@ -224,31 +420,21 @@ export const useChatStore = create((set, get) => ({
 
     socket.off("newMessage");
     socket.on("newMessage", (newMessage) => {
-      const { selectedUser: currentSelected, messages } = get();
-      if (!currentSelected) return;
+      const authUser = useAuthStore.getState().authUser;
+      if (!authUser) return;
 
-      const isFromSelected = newMessage.senderId === currentSelected._id;
-      const isToSelected = newMessage.receiverId === currentSelected._id;
-      if (!isFromSelected && !isToSelected) return;
+      const targetUserId =
+        newMessage.senderId === authUser._id ? newMessage.receiverId : newMessage.senderId;
 
-      const existingIndex = messages.findIndex(
-        (m) =>
-          m._id === newMessage._id ||
-          (newMessage.tempId && (m._id === newMessage.tempId || m.tempId === newMessage.tempId))
-      );
+      const updatedMsg = { ...newMessage, status: "sent" };
+      messageCache.updateMessage(targetUserId, updatedMsg);
 
-      if (existingIndex !== -1) {
-        // Reconcile existing optimistic message
-        const updated = [...messages];
-        updated[existingIndex] = {
-          ...newMessage,
-          status: "sent",
-          progress: 100,
-        };
-        set({ messages: updated });
-      } else {
-        // Incoming message from other user
-        set({ messages: [...messages, { ...newMessage, status: "sent" }] });
+      const { selectedUser: currentSelected } = get();
+      if (currentSelected && currentSelected._id === targetUserId) {
+        const cached = messageCache.get(targetUserId);
+        if (cached) {
+          set({ messages: cached.messages });
+        }
       }
     });
   },
@@ -258,13 +444,43 @@ export const useChatStore = create((set, get) => ({
     if (socket) socket.off("newMessage");
   },
 
-  setSelectedUser: (selectedUser) =>
+  setSelectedUser: (selectedUser) => {
+    set({ selectedUser });
+    if (selectedUser) {
+      const cached = messageCache.get(selectedUser._id);
+      if (cached) {
+        set({
+          messages: cached.messages,
+          hasMore: cached.hasMore,
+          nextCursor: cached.nextCursor,
+          isMessagesLoading: false,
+        });
+      } else {
+        set({
+          messages: [],
+          hasMore: false,
+          nextCursor: null,
+          isMessagesLoading: true,
+        });
+      }
+    } else {
+      set({
+        messages: [],
+        hasMore: false,
+        nextCursor: null,
+        isMessagesLoading: false,
+      });
+    }
+  },
+
+  clearCache: () => {
+    messageCache.clear();
     set({
-      selectedUser,
       messages: [],
       hasMore: false,
       nextCursor: null,
       isLoadingMore: false,
       isMessagesLoading: false,
-    }),
+    });
+  },
 }));

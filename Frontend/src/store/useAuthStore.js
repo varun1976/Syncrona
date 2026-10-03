@@ -3,6 +3,7 @@ import { axiosInstance } from "../lib/axios.js";
 import { notify } from "../store/useNotificationStore.js";
 import { parseApiError } from "../lib/errorHandler.js";
 import { io } from 'socket.io-client';
+import { useChatStore } from "./useChatStore.js";
 
 const BASE_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.MODE === "development" ? "http://localhost:5001" : "/");
 
@@ -24,6 +25,7 @@ export const useAuthStore = create((set, get) => ({
             console.log("Error in checkAuth:", error);
             if (error.response?.status === 401) {
                 localStorage.removeItem("token");
+                useChatStore.getState().clearCache();
             }
             set({ authUser: null });
         } finally {
@@ -51,11 +53,13 @@ export const useAuthStore = create((set, get) => ({
         try {
             await axiosInstance.post("/auth/logout");
             localStorage.removeItem("token");
+            useChatStore.getState().clearCache();
             set({ authUser: null });
             notify.success("Logged out successfully.", "Signed Out");
             get().disconnectSocket();
         } catch (error) {
             localStorage.removeItem("token");
+            useChatStore.getState().clearCache();
             set({ authUser: null });
             const errorMsg = parseApiError(error, "Logged out");
             notify.info(errorMsg, "Session Ended");
@@ -135,6 +139,7 @@ export const useAuthStore = create((set, get) => ({
         try {
             await axiosInstance.delete("/auth/delete-account");
             localStorage.removeItem("token");
+            useChatStore.getState().clearCache();
             get().disconnectSocket();
             set({ authUser: null });
             notify.success("Your account has been deleted successfully.", "Account Deleted");
