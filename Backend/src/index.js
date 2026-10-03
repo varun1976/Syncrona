@@ -26,8 +26,9 @@ app.use(
 // Gzip response compression
 app.use(compression());
 
-app.use(express.json({ limit: '200kb' }));
-app.use(express.urlencoded({ extended: true, limit: '200kb' }));
+// Increase payload limit for Base64 image uploads (up to 10MB)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // Dynamic CORS configuration allowing Vercel frontend (*.vercel.app) and local development
@@ -67,14 +68,22 @@ app.use("/api", globalLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
-// Payload limit error handler
+// Structured error handling middleware
 app.use((err, req, res, next) => {
-  if (err.type === 'entity.too.large') {
-    return res.status(413).json({ message: 'Payload too large. Max size is 200KB.' });
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({
+      success: false,
+      code: 'PAYLOAD_TOO_LARGE',
+      message: 'This image is too large to upload. Please choose an image smaller than 5MB.',
+    });
   }
 
-  console.error("Unhandled server error:", err.message);
-  res.status(500).json({ message: 'Internal server error' });
+  console.error("Unhandled server error:", err.stack || err.message);
+  res.status(500).json({
+    success: false,
+    code: 'SERVER_ERROR',
+    message: 'We encountered an unexpected server error. Please try again later.',
+  });
 });
 
 // Production static file fallback if frontend is built together

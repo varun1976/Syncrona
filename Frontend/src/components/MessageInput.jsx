@@ -22,14 +22,30 @@ const MessageInput = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      notify.error("This file type is not supported. Please select an image file.", "Unsupported File");
+    // 1. File size validation (Max 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      notify.error("This image is too large. Please choose an image smaller than 5MB.", "File Too Large");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
+    // 2. MIME type validation
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type.toLowerCase()) && !file.type.startsWith("image/")) {
+      notify.error("This image format is not supported. Please choose a JPEG, PNG, GIF, or WebP file.", "Unsupported Format");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    // 3. File reading with error handler
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
+    };
+    reader.onerror = () => {
+      notify.error("This image could not be opened. Please try another image.", "Invalid File");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     };
     reader.readAsDataURL(file);
   };

@@ -111,8 +111,19 @@ export const updateProfile = async (req, res) => {
     }
 
     if (profilePic) {
-      const uploadResponse = await cloudinary.uploader.upload(profilePic);
-      updateFields.profilePic = uploadResponse.secure_url;
+      try {
+        const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+          folder: "syncrona_avatars",
+        });
+        updateFields.profilePic = uploadResponse.secure_url;
+      } catch (cloudinaryErr) {
+        console.error("Cloudinary avatar upload error:", cloudinaryErr.message);
+        return res.status(400).json({
+          success: false,
+          code: "AVATAR_UPLOAD_FAILED",
+          message: "Unable to update your profile picture. Please try another image or try again later.",
+        });
+      }
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -123,8 +134,12 @@ export const updateProfile = async (req, res) => {
 
     res.status(200).json(updatedUser);
   } catch (error) {
-    console.log("error in update profile:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("error in update profile:", error.message);
+    res.status(500).json({
+      success: false,
+      code: "PROFILE_UPDATE_FAILED",
+      message: "We couldn't save your profile changes. Please try again.",
+    });
   }
 };
 

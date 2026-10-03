@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
+import { notify } from "../store/useNotificationStore";
 import {
   Camera,
   Mail,
@@ -56,12 +57,37 @@ const ProfilePage = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // 1. File size validation (Max 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      notify.error("This image is too large. Please choose an image smaller than 5MB.", "File Too Large");
+      e.target.value = "";
+      return;
+    }
+
+    // 2. MIME type validation
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type.toLowerCase()) && !file.type.startsWith("image/")) {
+      notify.error("This image format is not supported. Please choose a JPEG, PNG, GIF, or WebP file.", "Unsupported Format");
+      e.target.value = "";
+      return;
+    }
+
+    // 3. File reading with error handler
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
       const base64Image = reader.result;
       setSelectedImg(base64Image);
-      await updateProfile({ profilePic: base64Image });
+      try {
+        await updateProfile({ profilePic: base64Image });
+      } catch (err) {
+        setSelectedImg(null);
+      }
+    };
+    reader.onerror = () => {
+      notify.error("This image could not be opened. Please try another image.", "Invalid File");
+      e.target.value = "";
     };
   };
 
