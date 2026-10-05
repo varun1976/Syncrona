@@ -45,6 +45,7 @@ export const signup = async (req, res) => {
         fullName: newUser.fullName,
         email: newUser.email,
         profilePic: newUser.profilePic,
+        createdAt: newUser.createdAt,
         token,
       });
     } else {
@@ -82,6 +83,7 @@ export const login = async (req, res) => {
       fullName: user.fullName,
       email: user.email,
       profilePic: user.profilePic,
+      createdAt: user.createdAt,
       token,
     });
   } catch (error) {
@@ -186,11 +188,13 @@ export const checkAuth = (req, res) => {
 export const googleAuth = async (req, res) => {
   const { idToken } = req.body;
   try {
-    if (!idToken) {
-      return res.status(400).json({ message: "Google ID token is required" });
+    if (!idToken || typeof idToken !== "string") {
+      return res.status(400).json({ message: "Google ID token string is required" });
     }
 
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const rawClientId = process.env.GOOGLE_CLIENT_ID;
+    const clientId = rawClientId ? rawClientId.trim() : "";
+
     if (!clientId) {
       return res.status(500).json({ message: "GOOGLE_CLIENT_ID is not configured on server" });
     }
@@ -241,6 +245,7 @@ export const googleAuth = async (req, res) => {
       fullName: user.fullName,
       email: user.email,
       profilePic: user.profilePic,
+      createdAt: user.createdAt,
       token,
     });
   } catch (error) {

@@ -6,25 +6,31 @@ import { Loader2 } from "lucide-react";
 
 const GoogleAuthButton = () => {
   const { googleLogin, isLoggingIn } = useAuthStore();
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const rawClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const clientId = rawClientId ? rawClientId.trim() : "";
 
   const handleSuccess = (credentialResponse) => {
     if (credentialResponse?.credential) {
       googleLogin(credentialResponse.credential);
     } else {
-      notify.error("Google Sign-In failed: No credential received.", "Authentication Error");
+      console.error("[GOOGLE AUTH ERROR] No credential present in response:", credentialResponse);
+      notify.error("Google Sign-In failed: No credential token received.", "Authentication Error");
     }
   };
 
-  const handleError = () => {
-    notify.error("Google Sign-In was cancelled or failed.", "Google Sign-In Failed");
+  const handleError = (error) => {
+    console.error("[GOOGLE AUTH ERROR] Google Sign-In prompt/popup error:", error);
+    notify.error(
+      "Google Sign-In failed or popup was closed. Please verify popup blockers and Google Cloud Authorized Origins.",
+      "Google Sign-In Failed"
+    );
   };
 
   if (!clientId || clientId.includes("your_google_client_id")) {
     return (
       <button
         type="button"
-        onClick={() => notify.error("Google Client ID is not configured in VITE_GOOGLE_CLIENT_ID", "Configuration Error")}
+        onClick={() => notify.error("Google Client ID is not configured in environment variables (VITE_GOOGLE_CLIENT_ID).", "Configuration Error")}
         className="neu-btn w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-wider text-slate-700"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -67,7 +73,7 @@ const GoogleAuthButton = () => {
             shape="rectangular"
             size="large"
             text="continue_with"
-            width="384"
+            width="100%"
           />
         </div>
       )}

@@ -5,7 +5,6 @@
 Designed with a modern glassmorphic UI, instant in-memory conversation caching, production-hardened security, and optimized cross-domain deployment for **Vercel** (Frontend) and **Render** (Backend).
 
 🌐 **Live Web Application**: [https://syncrona.vercel.app](https://syncrona.vercel.app)  
-⚡ **Backend API Endpoint**: [https://syncrona-backend.onrender.com](https://syncrona-backend.onrender.com)
 
 ---
 
@@ -159,33 +158,6 @@ npm run dev
 ```
 
 Navigate to `http://localhost:5173` in your browser.
-
----
-
-## 🚀 Production Deployment Guide
-
-### Backend Deployment (Render / Railway / AWS)
-1. Provision a **Web Service** pointing to the `Backend/` directory.
-2. Build Command: `npm install`
-3. Start Command: `node src/index.js`
-4. Set Environment Variables:
-   - `NODE_ENV`: `production`
-   - `CLIENT_URL`: `https://syncrona.vercel.app`
-   - `MONGODB_URI`: `<Production MongoDB Atlas URI>`
-   - `JWT_SECRET`: `<Strong 256-bit Random Secret>`
-   - `GOOGLE_CLIENT_ID`: `<Google OAuth Client ID>`
-   - `CLOUDINARY_*`: `<Production Cloudinary Credentials>`
-
-### Frontend Deployment (Vercel)
-1. Import repository on [Vercel](https://vercel.com).
-2. Set Root Directory to `Frontend`.
-3. Framework Preset: `Vite`.
-4. Build Command: `npm run build`.
-5. Output Directory: `dist`.
-6. Set Environment Variables:
-   - `VITE_API_URL`: `https://syncrona-backend.onrender.com/api`
-   - `VITE_SOCKET_URL`: `https://syncrona-backend.onrender.com`
-   - `VITE_GOOGLE_CLIENT_ID`: `<Google OAuth Client ID>`
 
 ---
 

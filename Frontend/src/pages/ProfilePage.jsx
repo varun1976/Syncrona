@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Calendar,
   Lock,
-  KeyRound,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -190,13 +189,21 @@ const ProfilePage = () => {
     }
   };
 
-  const memberSinceDate = authUser?.createdAt
-    ? new Date(authUser.createdAt).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "Active User";
+  const getCreatedDate = () => {
+    if (authUser?.createdAt) {
+      return new Date(authUser.createdAt);
+    }
+    if (authUser?._id && typeof authUser._id === "string" && authUser._id.length === 24) {
+      return new Date(parseInt(authUser._id.substring(0, 8), 16) * 1000);
+    }
+    return new Date();
+  };
+
+  const memberSinceDate = getCreatedDate().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
   const isGoogleUser = authUser?.authProvider === "google";
 
@@ -421,24 +428,13 @@ const ProfilePage = () => {
                   </div>
 
                   {/* Account Status */}
-                  <div className="flex items-center justify-between py-1 border-b border-[var(--border-color)]/60">
+                  <div className="flex items-center justify-between py-1">
                     <span className="text-[var(--text-secondary)] flex items-center gap-2">
                       <CheckCircle2 className="size-3.5 text-[var(--success-color)]" />
                       Account Status
                     </span>
                     <span className="px-2.5 py-0.5 rounded-full neu-inset-sm text-xs font-bold text-[var(--success-color)]">
                       Active
-                    </span>
-                  </div>
-
-                  {/* Auth Provider */}
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-[var(--text-secondary)] flex items-center gap-2">
-                      <KeyRound className="size-3.5 text-[var(--accent-color)]" />
-                      Authentication Method
-                    </span>
-                    <span className="text-[var(--text-primary)] font-bold capitalize">
-                      {isGoogleUser ? "Google OAuth 2.0" : "Email & Password"}
                     </span>
                   </div>
                 </div>
